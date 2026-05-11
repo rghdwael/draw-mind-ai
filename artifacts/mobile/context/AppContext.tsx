@@ -266,15 +266,18 @@ export function AppProvider({ children: reactChildren }: { children: React.React
   }, []);
 
   const logout = useCallback(async () => {
-    await AsyncStorage.setItem(
-      STORAGE_KEY_AUTH,
-      JSON.stringify({ isLoggedIn: false })
-    );
+    await Promise.all([
+      AsyncStorage.setItem(STORAGE_KEY_AUTH, JSON.stringify({ isLoggedIn: false })),
+      AsyncStorage.removeItem(STORAGE_KEY_CHILDREN),
+      AsyncStorage.removeItem(STORAGE_KEY_DRAWINGS),
+    ]);
     setIsLoggedIn(false);
     setUserName("Anna");
     setUserEmail("");
     setUserPhone("");
     setUserRelationship("");
+    setChildren(MOCK_CHILDREN);
+    setDrawings(MOCK_DRAWINGS);
   }, []);
 
   const updateUserProfile = useCallback(
