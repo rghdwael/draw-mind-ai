@@ -33,6 +33,7 @@ function RootLayoutNav() {
       <Stack.Screen name="analysis-result" />
       <Stack.Screen name="child-analysis" />
       <Stack.Screen name="edit-child" />
+      <Stack.Screen name="add-drawing" />
       <Stack.Screen name="drawing-detail" />
     </Stack>
   );

@@ -660,14 +660,14 @@ export default function HomeScreen() {
               label="Upload Drawing"
               sub="Analyze from your camera roll"
               colors={["#5535E8", "#6C4DFF", "#9B7FFF"]}
-              onPress={() => router.push("/choose-child")}
+              onPress={() => router.push({ pathname: "/choose-child", params: { mode: "upload" } })}
             />
             <ActionBtn
               icon="brush-outline"
               label="Draw"
               sub="Create a new drawing to analyze"
               colors={["#C084FC", "#A855F7", "#7C3AED"]}
-              onPress={() => router.push("/choose-child")}
+              onPress={() => router.push({ pathname: "/choose-child", params: { mode: "draw" } })}
             />
           </View>
         </Animated.View>
