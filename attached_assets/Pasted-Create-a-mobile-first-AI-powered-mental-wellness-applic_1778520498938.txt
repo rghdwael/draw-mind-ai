@@ -1,0 +1,650 @@
+Create a mobile-first AI-powered mental wellness application called **Draw Mind AI** focused on analyzing children’s drawings using AI to help parents understand emotional and behavioral patterns. 
+
+The entire app must follow a soft premium purple UI aesthetic inspired by high-end Dribbble mobile concepts and the provided reference image.
+
+==================================================
+🌈 DESIGN SYSTEM & VISUAL STYLE
+===============================
+
+Use a modern:
+
+* Soft UI
+* Light Glassmorphism
+* Premium mobile app aesthetic
+* Emotionally supportive and calming experience
+
+Main Colors:
+
+* Deep Purple: #6C4DFF
+* Lavender: #B89CFF
+* Light Background: #F5F1FF
+* Dark Navy Bottom Bar: #24124D
+* Soft White: #FFFFFF
+
+Typography:
+
+* Poppins or Inter
+* Clean modern hierarchy
+* Spacious layout
+* Elegant typography scaling
+
+UI Style:
+
+* Rounded corners (24px–32px)
+* Soft shadows
+* Subtle glow effects
+* Floating UI elements
+* Lavender gradients
+* Premium spacing
+* Cute child-friendly illustrations/icons
+* Smooth transitions & micro-interactions
+* Mobile-first responsive design
+* Dribbble-quality polish
+
+Technical Requirements:
+
+* React + Tailwind CSS OR Flutter
+* Reusable components
+* Firebase-ready architecture
+* Mock data included
+* Dummy AI analysis responses
+* Production-ready structure
+* Smooth animations and page transitions
+
+==================================================
+🚀 APP PURPOSE
+==============
+
+The app helps parents:
+
+* Upload children’s drawings
+* Analyze emotions using AI
+* Track emotional development
+* Receive emotional insights
+* Chat with AI psychology assistant
+* Connect with child psychology doctors
+
+==================================================
+📱 REQUIRED SCREENS
+===================
+
+---
+
+1. SPLASH / WELCOME SCREEN
+
+---
+
+Design a premium onboarding splash screen with:
+
+* Cute purple mascot illustration
+* App logo: “Draw Mind AI”
+* Subtitle:
+  “Understand your child’s world with the power of AI”
+* Large glowing purple gradient button:
+  “Get Started”
+
+Use:
+
+* Floating glowing shapes
+* Soft gradient background
+* Premium onboarding feel
+* Smooth fade animations
+
+---
+
+2. LOGIN / SIGN UP SCREEN
+
+---
+
+Create a modern authentication screen with:
+
+* Email input
+* Password input
+* Rounded input fields
+* Social login buttons:
+
+  * Google
+  * Apple
+* Elegant minimalist layout
+* Large glowing purple gradient Sign In button
+* Soft shadows
+* Mobile-first spacing
+
+---
+
+3. HOME DASHBOARD
+
+---
+
+Create a premium dashboard experience.
+
+Top Greeting Card:
+
+* “Good Morning, Anna”
+* Circular profile avatar
+* Soft glassmorphism card
+
+Stats:
+
+* Children count
+* Drawings count
+
+My Children Section:
+Display circular child avatars:
+
+* Rud
+* Emmi
+* Alex
+
+After the last child:
+➕ Add Child Circle Button
+
+Add Child Button Style:
+
+* Purple gradient circle
+* Glow effect
+* Floating animation
+* Same style as child avatars
+
+When clicked:
+Open “Add Child” screen using smooth slide transition.
+
+---
+
+4. ADD CHILD SCREEN
+
+---
+
+Create a premium child profile form.
+
+Fields:
+
+* Child Name
+* Age
+* Gender
+* Favorite Activities
+* Emotional Notes
+* Parent Notes
+
+Use:
+
+* Rounded lavender input fields
+* Soft shadows
+* Minimal premium UI
+
+Avatar Selection:
+
+* Cute avatar icons
+  OR
+* Upload child photo
+
+Buttons:
+
+* Save Child
+* Cancel
+
+Save button:
+
+* Purple glowing gradient
+* Rounded pill style
+
+---
+
+5. HOME ACTION BUTTONS
+
+---
+
+Include:
+
+* Upload Drawing button
+* Draw 🎨 button
+
+Remove old Chat button.
+
+Buttons style:
+
+* Purple gradient
+* Rounded
+* Premium glow
+* Floating interaction effects
+
+---
+
+6. CHOOSE CHILD SCREEN
+
+---
+
+When user taps Draw:
+Open “Choose Child” screen.
+
+Display selectable child cards containing:
+
+* Avatar
+* Child name
+* Age
+* Emotional summary
+
+Example:
+“75% Happy”
+
+Cards:
+
+* Rounded
+* Soft shadows
+* Purple accents
+
+When selected:
+Navigate to Drawing Canvas screen.
+
+---
+
+7. DRAWING CANVAS SCREEN
+
+---
+
+Create a child-friendly drawing experience.
+
+Canvas Area:
+
+* Large white rounded drawing area
+
+Drawing Tools:
+
+* Pencil
+* Brush
+* Eraser
+* Color picker
+* Undo
+* Clear canvas
+
+Top Section:
+
+* Child avatar
+* Child name
+* Mood indicator
+
+Bottom Buttons:
+
+* Save Drawing
+* Analyze with AI
+
+Analyze button:
+
+* Purple gradient glow
+* Futuristic premium feel
+
+---
+
+8. AI ANALYSIS RESULT SCREEN
+
+---
+
+After Analyze with AI:
+Open detailed emotional analysis screen.
+
+Include:
+
+* Drawing preview
+* Main detected emotion
+* Confidence percentages
+
+Emotion Examples:
+
+* Happiness: 92%
+* Anxiety: 18%
+* Sadness: 11%
+
+Use:
+
+* Animated progress bars
+* Circular emotion charts
+* Soft glowing indicators
+
+AI Summary Card:
+“This drawing suggests emotional comfort, creativity, and positive social feelings.”
+
+Behavioral Insight Sections:
+
+* Emotional State
+* Social Indicators
+* Stress Signals
+* Creativity Level
+* Confidence Level
+
+Recommendations:
+
+* Encourage outdoor play
+* Maintain positive reinforcement
+* Monitor emotional fluctuations
+
+Use:
+
+* Rounded recommendation cards
+* Emotion icons
+* Premium spacing
+
+---
+
+9. CHILDREN’S DRAWINGS SCREEN
+
+---
+
+Header:
+Title:
+“Children’s Draw”
+
+Top Filter Tabs:
+
+* All
+* Rud
+* Emmi
+* Alex
+
+Active tab:
+
+* Purple gradient glow
+* Rounded pill style
+* Soft shadow
+
+Child Sections:
+Each child card contains:
+
+* Avatar
+* Child name
+* Number of drawings
+* Emotional summary badge
+
+Example:
+“75% Happy”
+
+Drawing Preview Cards:
+Show:
+
+* Drawing date
+* Main emotion
+* Emotion percentage
+
+Examples:
+
+* Happiness 92%
+* Sadness 87%
+* Anger 76%
+
+Card Style:
+
+* Rounded corners
+* Soft pastel backgrounds
+* Minimal premium layout
+* Small arrow navigation icon
+
+Interaction:
+Tap child section → Open Child Analysis Screen.
+
+---
+
+10. CHILD ANALYSIS SCREEN
+
+---
+
+Display all drawings uploaded by that child.
+
+Top Section:
+
+* Large child avatar
+* Child name
+* Age
+* Emotional overview
+* Total drawings count
+
+Example:
+
+* 75% Happy
+* 15% Sad
+* 10% Anxiety
+
+Add:
+
+* Soft animated emotion graph
+
+Drawings Gallery:
+Grid of modern rounded cards.
+
+Each drawing card:
+
+* Image preview
+* Upload date
+* AI emotion
+* Confidence %
+
+Examples:
+
+* Happy — 92%
+* Anxiety — 67%
+* Sadness — 81%
+
+---
+
+11. DETAILED DRAWING ANALYSIS PAGE
+
+---
+
+Include:
+
+* Large centered drawing preview
+* Rounded premium frame
+
+AI Emotional Analysis:
+
+* Main emotion
+* Confidence score
+* Emotion indicators
+
+Use:
+
+* Animated progress bars
+* Circular charts
+* Soft glowing emotion indicators
+
+AI Summary:
+“This drawing suggests emotional comfort, creativity, and positive social feelings.”
+
+Behavioral Insights:
+
+* Emotional State
+* Social Indicators
+* Stress Signals
+* Creativity Level
+* Confidence Level
+
+Recommendations cards:
+
+* Encourage outdoor play
+* Positive reinforcement
+* Emotional observation
+
+---
+
+12. CHAT SCREEN
+
+---
+
+Create a premium split-tab chat experience.
+
+Top:
+Title:
+“Chat”
+
+Segmented Toggle Tabs:
+
+* AI Assistant
+* Doctors
+
+Active tab:
+
+* Purple glowing gradient
+* Rounded pill
+
+---
+
+## AI ASSISTANT TAB
+
+AI Assistant Card:
+
+* AI avatar/icon
+* Online status
+* Title:
+  “Psychology AI”
+* Subtitle:
+  “Children, Anxiety, Psychology AI for kids”
+
+Quick Suggestion Chips:
+
+* “How is Rud feeling?”
+* “Any concerns?”
+* “Weekly summary”
+
+Use:
+
+* Rounded pills
+* Soft shadows
+* Hover animations
+
+Chat Messages:
+
+* AI messages in lavender bubbles
+* User messages opposite side
+* Friendly emotional tone
+
+Example AI message:
+“Hi! I’m your child psychology AI assistant. I can help you understand your child’s emotional state through their drawings.”
+
+Bottom Input Area:
+
+* Rounded input
+* Placeholder:
+  “Type your message…”
+* Floating purple send button
+* Glow effect
+
+---
+
+## DOCTORS TAB
+
+Scrollable doctor cards.
+
+Each doctor card:
+
+* Doctor avatar/photo
+* Name
+* Specialty
+* Hospital/Clinic
+* Rating
+* Years of experience
+* Patient count
+
+Expertise Tags:
+
+* Anxiety
+* Emotions
+* Drawing Analysis
+* Child Behavior
+
+Button:
+“Leave Message”
+
+Card Style:
+
+* Rounded white cards
+* Purple accents
+* Soft shadows
+* Friendly professional feel
+
+---
+
+13. PROFILE SCREEN
+
+---
+
+Premium profile page similar to reference UI.
+
+Top:
+
+* Purple gradient header
+* Large avatar
+* Email display
+
+Stats Cards:
+
+* Children
+* Drawings
+* Happy %
+
+Premium Banner:
+Subscription promotion card
+
+Settings List:
+
+* Edit Profile
+* Update Child Info
+* Support & Feedback
+* Language
+* Change Password
+* About App
+* Privacy Policy
+* Terms of Use
+
+Bottom Navigation:
+Fixed dark purple navbar.
+
+==================================================
+🧭 BOTTOM NAVIGATION
+====================
+
+Fixed bottom navigation with:
+
+* Home
+* Children’s Draw
+* Chat
+* Profile
+
+Style:
+
+* Dark purple background
+* Active glowing tab
+* Smooth transitions
+* Floating premium appearance
+
+==================================================
+✨ UX, ANIMATIONS & MICRO-INTERACTIONS
+=====================================
+
+Add:
+
+* Smooth page transitions
+* Floating animations
+* Soft hover/touch effects
+* Loading skeletons
+* Empty states
+* Glow effects
+* Interactive charts
+* Premium onboarding feel
+* Floating action button for uploading drawings
+* Emotion indicators
+* Glassmorphism layers
+* Soft gradients throughout app
+
+==================================================
+🎯 FINAL GOAL
+=============
+
+The final application must feel:
+
+* Emotionally supportive
+* Extremely polished
+* Modern and calming
+* Premium and futuristic
+* Production-quality
+* Similar to top Dribbble mobile UI concepts
+* Pixel-perfect
+* Highly detailed in spacing, typography, hierarchy, and interactions
+* Ready to evolve into a real AI-powered mental wellness mobile app
