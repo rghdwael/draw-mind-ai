@@ -289,13 +289,6 @@ function ExpandedChildCard({
               </Svg>
             )}
 
-            {/* Tap hint overlay */}
-            <View style={styles.drawingPreviewOverlay}>
-              <View style={styles.drawingPreviewBadge}>
-                <Ionicons name="expand-outline" size={12} color="#6C4DFF" />
-                <Text style={styles.drawingPreviewBadgeText}>View full</Text>
-              </View>
-            </View>
           </LinearGradient>
 
           {/* Caption row */}
@@ -832,28 +825,6 @@ const styles = StyleSheet.create({
     elevation: 5,
     justifyContent: "center",
     alignItems: "center",
-  },
-  drawingPreviewOverlay: {
-    position: "absolute",
-    bottom: 10,
-    right: 10,
-  },
-  drawingPreviewBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: "rgba(255,255,255,0.85)",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "rgba(108,77,255,0.15)",
-  },
-  drawingPreviewBadgeText: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: "#6C4DFF",
-    fontFamily: "Inter_600SemiBold",
   },
   drawingCaption: {
     flexDirection: "row",
