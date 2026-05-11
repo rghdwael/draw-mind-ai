@@ -217,22 +217,6 @@ function ExpandedChildCard({
         <Text style={styles.insightText}>{insightText}</Text>
       </View>
 
-      {/* Emotion Pills */}
-      <View style={styles.pillsRow}>
-        <View style={[styles.pill, { backgroundColor: "#FFF0F6" }]}>
-          <View style={[styles.pillDot, { backgroundColor: "#FF6B9D" }]} />
-          <Text style={[styles.pillText, { color: "#FF6B9D" }]}>{happyPct}% Happy</Text>
-        </View>
-        <View style={[styles.pill, { backgroundColor: "#EEF0FF" }]}>
-          <View style={[styles.pillDot, { backgroundColor: "#6C7FFF" }]} />
-          <Text style={[styles.pillText, { color: "#6C7FFF" }]}>{sadPct}% Sad</Text>
-        </View>
-        <View style={[styles.pill, { backgroundColor: "#F0EDFF" }]}>
-          <Ionicons name="image-outline" size={12} color="#6C4DFF" />
-          <Text style={[styles.pillText, { color: "#6C4DFF" }]}>{childDrawings.length} Drawings</Text>
-        </View>
-      </View>
-
       {/* ── Latest Drawing Preview ── */}
       <Animated.View style={[styles.drawingPreviewWrap, { opacity: imgFade }]}>
         <TouchableOpacity
@@ -786,27 +770,6 @@ const styles = StyleSheet.create({
     lineHeight: 19,
   },
 
-  /* Emotion Pills */
-  pillsRow: {
-    flexDirection: "row",
-    gap: 8,
-    flexWrap: "wrap",
-    marginBottom: 18,
-  },
-  pill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  pillDot: { width: 7, height: 7, borderRadius: 4 },
-  pillText: {
-    fontSize: 12,
-    fontWeight: "600",
-    fontFamily: "Inter_600SemiBold",
-  },
 
   /* Drawing Preview */
   drawingPreviewWrap: {
