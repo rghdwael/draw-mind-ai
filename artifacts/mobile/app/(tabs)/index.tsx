@@ -145,6 +145,19 @@ function ExpandedChildCard({
 
   const insightText = `${child.name} is showing consistent improvement in emotional expression this week.`;
 
+  const latestDrawing = childDrawings[0] ?? null;
+  const drawingPaths: Array<{ d: string; color: string; strokeWidth: number }> =
+    latestDrawing ? (() => { try { return JSON.parse(latestDrawing.pathsJson); } catch { return []; } })() : [];
+
+  const imgFade = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (visible) {
+      Animated.timing(imgFade, { toValue: 1, duration: 500, delay: 250, useNativeDriver: true }).start();
+    } else {
+      imgFade.setValue(0);
+    }
+  }, [visible]);
+
   if (!visible) return null;
 
   return (
@@ -220,46 +233,106 @@ function ExpandedChildCard({
         </View>
       </View>
 
-      {/* Action Buttons */}
-      <View style={styles.expandedActions}>
+      {/* ── Latest Drawing Preview ── */}
+      <Animated.View style={[styles.drawingPreviewWrap, { opacity: imgFade }]}>
         <TouchableOpacity
-          style={styles.expandedActionBtn}
-          activeOpacity={0.85}
+          activeOpacity={0.88}
           onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.push("/choose-child");
+            if (latestDrawing) {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push({ pathname: "/drawing-detail", params: { drawingId: latestDrawing.id } });
+            }
           }}
         >
           <LinearGradient
-            colors={["#6C4DFF", "#9B7FFF"]}
+            colors={["#EDE9FF", "#DDD6FF"]}
             start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.expandedActionGrad}
+            end={{ x: 1, y: 1 }}
+            style={styles.drawingPreviewCanvas}
           >
-            <Ionicons name="cloud-upload-outline" size={18} color="#fff" />
-            <Text style={styles.expandedActionLabel}>Upload Drawing</Text>
-          </LinearGradient>
-        </TouchableOpacity>
+            {drawingPaths.length > 0 ? (
+              <Svg width="100%" height="160" viewBox="0 0 300 160">
+                {drawingPaths.map((path, i) => (
+                  <Path
+                    key={i}
+                    d={path.d}
+                    stroke={path.color}
+                    strokeWidth={path.strokeWidth}
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                ))}
+              </Svg>
+            ) : (
+              /* Decorative placeholder when no paths saved */
+              <Svg width="100%" height="160" viewBox="0 0 300 160">
+                <Defs>
+                  <SvgGradient id="ph1" x1="0" y1="0" x2="1" y2="1">
+                    <Stop offset="0" stopColor="#B89CFF" stopOpacity="0.5" />
+                    <Stop offset="1" stopColor="#6C4DFF" stopOpacity="0.3" />
+                  </SvgGradient>
+                </Defs>
+                {/* Decorative abstract drawing suggestion */}
+                <Path d="M 30 110 C 60 70, 90 130, 130 80 C 160 40, 190 100, 230 60 C 250 45, 270 75, 285 55"
+                  stroke="#6C4DFF" strokeWidth="3" fill="none" strokeLinecap="round" strokeOpacity="0.55" />
+                <Path d="M 20 130 C 50 110, 80 140, 110 120 C 140 100, 170 125, 200 110 C 230 95, 260 115, 285 105"
+                  stroke="#FF6B9D" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeOpacity="0.45" />
+                <Path d="M 40 90 C 65 55, 100 95, 135 60 C 165 30, 195 80, 230 50"
+                  stroke="#B89CFF" strokeWidth="2" fill="none" strokeLinecap="round" strokeOpacity="0.5" />
+                {/* Sun circle */}
+                <Path d="M 250 35 m -18 0 a 18 18 0 1 0 36 0 a 18 18 0 1 0 -36 0"
+                  fill="url(#ph1)" />
+                {/* Ground */}
+                <Path d="M 20 145 Q 80 135 150 142 Q 220 150 285 140"
+                  stroke="#9B7FFF" strokeWidth="2" fill="none" strokeLinecap="round" strokeOpacity="0.35" />
+              </Svg>
+            )}
 
-        <TouchableOpacity
-          style={styles.expandedActionBtn}
-          activeOpacity={0.85}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.push("/choose-child");
-          }}
-        >
-          <LinearGradient
-            colors={["#B89CFF", "#7C5FFF"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.expandedActionGrad}
-          >
-            <Ionicons name="brush-outline" size={18} color="#fff" />
-            <Text style={styles.expandedActionLabel}>Draw</Text>
+            {/* Tap hint overlay */}
+            <View style={styles.drawingPreviewOverlay}>
+              <View style={styles.drawingPreviewBadge}>
+                <Ionicons name="expand-outline" size={12} color="#6C4DFF" />
+                <Text style={styles.drawingPreviewBadgeText}>View full</Text>
+              </View>
+            </View>
           </LinearGradient>
+
+          {/* Caption row */}
+          <View style={styles.drawingCaption}>
+            <View style={styles.drawingCaptionLeft}>
+              <Ionicons name="image-outline" size={14} color="#8B7BAB" />
+              <Text style={styles.drawingCaptionText}>Latest Drawing</Text>
+            </View>
+            {latestDrawing && (
+              <Text style={styles.drawingCaptionDate}>{latestDrawing.date}</Text>
+            )}
+          </View>
         </TouchableOpacity>
-      </View>
+      </Animated.View>
+
+      {/* ── Single Upload Button ── */}
+      <TouchableOpacity
+        style={styles.uploadBtn}
+        activeOpacity={0.85}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          router.push("/choose-child");
+        }}
+      >
+        <LinearGradient
+          colors={["#6C4DFF", "#9B7FFF"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.uploadBtnGrad}
+        >
+          <View style={styles.uploadBtnIcon}>
+            <Ionicons name="cloud-upload-outline" size={20} color="#fff" />
+          </View>
+          <Text style={styles.uploadBtnLabel}>Upload Drawing</Text>
+          <Ionicons name="arrow-forward" size={18} color="rgba(255,255,255,0.7)" />
+        </LinearGradient>
+      </TouchableOpacity>
     </Animated.View>
   );
 }
@@ -742,22 +815,106 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
   },
 
-  /* Expanded Action Buttons */
-  expandedActions: { flexDirection: "row", gap: 10 },
-  expandedActionBtn: { flex: 1, borderRadius: 16, overflow: "hidden" },
-  expandedActionGrad: {
+  /* Drawing Preview */
+  drawingPreviewWrap: {
+    marginBottom: 14,
+  },
+  drawingPreviewCanvas: {
+    borderRadius: 20,
+    height: 160,
+    overflow: "hidden",
+    borderWidth: 1.5,
+    borderColor: "rgba(108,77,255,0.15)",
+    shadowColor: "#6C4DFF",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 5,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  drawingPreviewOverlay: {
+    position: "absolute",
+    bottom: 10,
+    right: 10,
+  },
+  drawingPreviewBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(255,255,255,0.85)",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(108,77,255,0.15)",
+  },
+  drawingPreviewBadgeText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#6C4DFF",
+    fontFamily: "Inter_600SemiBold",
+  },
+  drawingCaption: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 10,
+    marginBottom: 4,
+    paddingHorizontal: 2,
+  },
+  drawingCaptionLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  drawingCaptionText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#5A4A7A",
+    fontFamily: "Inter_600SemiBold",
+  },
+  drawingCaptionDate: {
+    fontSize: 12,
+    color: "#B0A0CC",
+    fontFamily: "Inter_400Regular",
+  },
+
+  /* Single Upload Button */
+  uploadBtn: {
+    borderRadius: 18,
+    overflow: "hidden",
+    marginTop: 4,
+    shadowColor: "#6C4DFF",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.28,
+    shadowRadius: 14,
+    elevation: 8,
+  },
+  uploadBtnGrad: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 7,
-    paddingVertical: 14,
-    borderRadius: 16,
+    gap: 10,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 18,
   },
-  expandedActionLabel: {
-    fontSize: 13,
+  uploadBtnIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  uploadBtnLabel: {
+    flex: 1,
+    fontSize: 15,
     fontWeight: "700",
     color: "#fff",
     fontFamily: "Inter_700Bold",
+    letterSpacing: -0.2,
   },
 
   /* ── Quick Actions Grid ── */
