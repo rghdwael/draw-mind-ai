@@ -111,17 +111,14 @@ function SparklineChart({
 function ChildCircle({
   child,
   selected,
-  onSingleTap,
-  onDoubleTap,
+  onTap,
 }: {
   child: Child;
   selected: boolean;
-  onSingleTap: () => void;
-  onDoubleTap: () => void;
+  onTap: () => void;
 }) {
   const scale = useRef(new Animated.Value(1)).current;
   const ringAnim = useRef(new Animated.Value(selected ? 1 : 0)).current;
-  const lastTap = useRef(0);
 
   useEffect(() => {
     Animated.spring(ringAnim, {
@@ -133,24 +130,12 @@ function ChildCircle({
   }, [selected]);
 
   function handlePress() {
-    const now = Date.now();
-    if (now - lastTap.current < 320) {
-      lastTap.current = 0;
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      Animated.sequence([
-        Animated.spring(scale, { toValue: 0.85, useNativeDriver: true, speed: 60, bounciness: 2 }),
-        Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 40, bounciness: 10 }),
-      ]).start();
-      onDoubleTap();
-    } else {
-      lastTap.current = now;
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      Animated.sequence([
-        Animated.spring(scale, { toValue: 0.92, useNativeDriver: true, speed: 50, bounciness: 2 }),
-        Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 40, bounciness: 8 }),
-      ]).start();
-      onSingleTap();
-    }
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Animated.sequence([
+      Animated.spring(scale, { toValue: 0.88, useNativeDriver: true, speed: 55, bounciness: 2 }),
+      Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 40, bounciness: 10 }),
+    ]).start();
+    onTap();
   }
 
   const ringOpacity = ringAnim;
@@ -384,21 +369,17 @@ export default function HomeScreen() {
     ]).start(() => setClearedToast(false));
   }
 
-  function handleSingleTap(id: string) {
-    if (id !== (selectedId ?? children[0]?.id)) {
+  function handleTap(id: string) {
+    const activeId = selectedId ?? children[0]?.id;
+    if (id !== activeId) {
       setSelectedId(id);
       if (!progressVisible) showProgress();
-    } else if (!progressVisible) {
-      showProgress();
-    }
-  }
-
-  function handleDoubleTap(id: string) {
-    setSelectedId(id);
-    if (progressVisible) {
-      hideProgress();
     } else {
-      showProgress();
+      if (progressVisible) {
+        hideProgress();
+      } else {
+        showProgress();
+      }
     }
   }
 
@@ -480,8 +461,7 @@ export default function HomeScreen() {
                 key={child.id}
                 child={child}
                 selected={(selectedId ?? children[0]?.id) === child.id}
-                onSingleTap={() => handleSingleTap(child.id)}
-                onDoubleTap={() => handleDoubleTap(child.id)}
+                onTap={() => handleTap(child.id)}
               />
             ))}
 
@@ -512,7 +492,7 @@ export default function HomeScreen() {
             ]}
           >
             <Ionicons name="checkmark-circle" size={16} color="#6C4DFF" />
-            <Text style={styles.clearedToastText}>Analysis hidden — double-tap again to restore</Text>
+            <Text style={styles.clearedToastText}>Analysis hidden — tap again to restore</Text>
           </Animated.View>
         )}
 
