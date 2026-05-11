@@ -107,79 +107,94 @@ function SparklineChart({
   );
 }
 
-// ── Child square card ─────────────────────────────────────────────────────────
-function ChildCard({
+// ── Circular Child Avatar ─────────────────────────────────────────────────────
+function ChildCircle({
   child,
   selected,
-  onPress,
+  onSingleTap,
+  onDoubleTap,
 }: {
   child: Child;
   selected: boolean;
-  onPress: () => void;
+  onSingleTap: () => void;
+  onDoubleTap: () => void;
 }) {
   const scale = useRef(new Animated.Value(1)).current;
+  const ringAnim = useRef(new Animated.Value(selected ? 1 : 0)).current;
+  const lastTap = useRef(0);
 
-  const handlePressIn = () =>
-    Animated.spring(scale, {
-      toValue: 0.93,
+  useEffect(() => {
+    Animated.spring(ringAnim, {
+      toValue: selected ? 1 : 0,
       useNativeDriver: true,
-      speed: 50,
-      bounciness: 3,
-    }).start();
-
-  const handlePressOut = () =>
-    Animated.spring(scale, {
-      toValue: 1,
-      useNativeDriver: true,
-      speed: 50,
+      speed: 28,
       bounciness: 6,
     }).start();
+  }, [selected]);
+
+  function handlePress() {
+    const now = Date.now();
+    if (now - lastTap.current < 320) {
+      lastTap.current = 0;
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      Animated.sequence([
+        Animated.spring(scale, { toValue: 0.85, useNativeDriver: true, speed: 60, bounciness: 2 }),
+        Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 40, bounciness: 10 }),
+      ]).start();
+      onDoubleTap();
+    } else {
+      lastTap.current = now;
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      Animated.sequence([
+        Animated.spring(scale, { toValue: 0.92, useNativeDriver: true, speed: 50, bounciness: 2 }),
+        Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 40, bounciness: 8 }),
+      ]).start();
+      onSingleTap();
+    }
+  }
+
+  const ringOpacity = ringAnim;
+  const ringScale = ringAnim.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] });
 
   return (
-    <Animated.View style={{ transform: [{ scale }] }}>
-      <Pressable
-        onPress={onPress}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-      >
-        <View
-          style={[
-            styles.childCard,
-            selected && {
-              borderColor: child.avatarColor,
-              borderWidth: 2.5,
-              shadowColor: child.avatarColor,
-              shadowOpacity: 0.28,
-              shadowRadius: 12,
-              elevation: 8,
-            },
-          ]}
+    <TouchableOpacity onPress={handlePress} activeOpacity={1} style={styles.circleWrap}>
+      {/* Glow ring */}
+      <Animated.View
+        style={[
+          styles.circleGlowRing,
+          {
+            borderColor: child.avatarColor,
+            opacity: ringOpacity,
+            transform: [{ scale: ringScale }],
+            shadowColor: child.avatarColor,
+          },
+        ]}
+      />
+      {/* Avatar circle */}
+      <Animated.View style={{ transform: [{ scale }] }}>
+        <LinearGradient
+          colors={[child.avatarColor + "DD", child.avatarColor]}
+          style={styles.circleAvatar}
+          start={{ x: 0.15, y: 0 }}
+          end={{ x: 0.85, y: 1 }}
         >
-          {/* Avatar square */}
-          <LinearGradient
-            colors={[child.avatarColor + "CC", child.avatarColor]}
-            style={styles.childCardAvatar}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-          >
-            {/* Decorative orb */}
-            <View style={styles.childCardOrb} />
-            <Text style={styles.childCardInitials}>{child.initials}</Text>
-          </LinearGradient>
-          <Text
-            style={[
-              styles.childCardName,
-              selected && { color: "#6C4DFF", fontFamily: "Inter_700Bold" },
-            ]}
-            numberOfLines={1}
-          >
-            {child.name}
-          </Text>
-          <Text style={styles.childCardAge}>Age {child.age}</Text>
-          {selected && <View style={styles.childCardDot} />}
-        </View>
-      </Pressable>
-    </Animated.View>
+          <View style={styles.circleShine} />
+          <Text style={styles.circleInitials}>{child.initials}</Text>
+        </LinearGradient>
+      </Animated.View>
+      <Text
+        style={[
+          styles.circleName,
+          selected && { color: "#6C4DFF", fontFamily: "Inter_700Bold" },
+        ]}
+        numberOfLines={1}
+      >
+        {child.name}
+      </Text>
+      {selected && (
+        <View style={[styles.circleSelectedDot, { backgroundColor: child.avatarColor }]} />
+      )}
+    </TouchableOpacity>
   );
 }
 
@@ -254,6 +269,10 @@ export default function HomeScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [progressVisible, setProgressVisible] = useState(true);
+  const [clearedToast, setClearedToast] = useState(false);
+  const progressAnim = useRef(new Animated.Value(1)).current;
+  const toastAnim = useRef(new Animated.Value(0)).current;
 
   const selectedChild: Child | undefined = useMemo(() => {
     const target = selectedId ?? children[0]?.id;
@@ -339,9 +358,48 @@ export default function HomeScreen() {
     prevId.current = selectedId;
   }, [selectedId]);
 
-  function handleChildPress(id: string) {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  function showProgress() {
+    setProgressVisible(true);
+    Animated.spring(progressAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 18,
+      bounciness: 5,
+    }).start();
+  }
+
+  function hideProgress() {
+    Animated.timing(progressAnim, {
+      toValue: 0,
+      duration: 280,
+      useNativeDriver: true,
+    }).start(() => {
+      setProgressVisible(false);
+    });
+    setClearedToast(true);
+    Animated.sequence([
+      Animated.timing(toastAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
+      Animated.delay(1400),
+      Animated.timing(toastAnim, { toValue: 0, duration: 350, useNativeDriver: true }),
+    ]).start(() => setClearedToast(false));
+  }
+
+  function handleSingleTap(id: string) {
+    if (id !== (selectedId ?? children[0]?.id)) {
+      setSelectedId(id);
+      if (!progressVisible) showProgress();
+    } else if (!progressVisible) {
+      showProgress();
+    }
+  }
+
+  function handleDoubleTap(id: string) {
     setSelectedId(id);
+    if (progressVisible) {
+      hideProgress();
+    } else {
+      showProgress();
+    }
   }
 
   const insightText = selectedChild
@@ -418,35 +476,55 @@ export default function HomeScreen() {
             contentContainerStyle={styles.childrenRow}
           >
             {children.map((child) => (
-              <ChildCard
+              <ChildCircle
                 key={child.id}
                 child={child}
                 selected={(selectedId ?? children[0]?.id) === child.id}
-                onPress={() => handleChildPress(child.id)}
+                onSingleTap={() => handleSingleTap(child.id)}
+                onDoubleTap={() => handleDoubleTap(child.id)}
               />
             ))}
 
-            {/* Add Child card */}
+            {/* Add Child circle */}
             <TouchableOpacity
               onPress={() => router.push("/add-child")}
               activeOpacity={0.8}
+              style={styles.circleWrap}
             >
-              <View style={styles.addChildCard}>
-                <View style={styles.addChildIcon}>
-                  <Ionicons name="add" size={26} color="#6C4DFF" />
-                </View>
-                <Text style={styles.addChildLabel}>Add{"\n"}Child</Text>
+              <View style={styles.addCircle}>
+                <Ionicons name="add" size={28} color="#6C4DFF" />
               </View>
+              <Text style={styles.circleName}>Add</Text>
             </TouchableOpacity>
           </ScrollView>
         </Animated.View>
 
+        {/* ── Cleared Toast ── */}
+        {clearedToast && (
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.clearedToast,
+              {
+                opacity: toastAnim,
+                transform: [{ translateY: toastAnim.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }],
+              },
+            ]}
+          >
+            <Ionicons name="checkmark-circle" size={16} color="#6C4DFF" />
+            <Text style={styles.clearedToastText}>Analysis hidden — double-tap again to restore</Text>
+          </Animated.View>
+        )}
+
         {/* ── Progress Chart ── */}
-        {selectedChild && (
+        {selectedChild && progressVisible && (
           <Animated.View
             style={{
-              opacity: Animated.multiply(fadeChart, chartFade),
-              transform: [{ translateY: fadeChart.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }],
+              opacity: Animated.multiply(Animated.multiply(fadeChart, chartFade), progressAnim),
+              transform: [
+                { translateY: fadeChart.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) },
+                { scale: progressAnim.interpolate({ inputRange: [0, 1], outputRange: [0.95, 1] }) },
+              ],
             }}
           >
             <View style={styles.sectionHeader}>
@@ -519,11 +597,14 @@ export default function HomeScreen() {
         )}
 
         {/* ── AI Insight ── */}
-        {selectedChild && (
+        {selectedChild && progressVisible && (
           <Animated.View
             style={{
-              opacity: Animated.multiply(fadeInsight, chartFade),
-              transform: [{ translateY: fadeInsight.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }],
+              opacity: Animated.multiply(Animated.multiply(fadeInsight, chartFade), progressAnim),
+              transform: [
+                { translateY: fadeInsight.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) },
+                { scale: progressAnim.interpolate({ inputRange: [0, 1], outputRange: [0.95, 1] }) },
+              ],
             }}
           >
             <View style={styles.insightCard}>
@@ -711,102 +792,114 @@ const styles = StyleSheet.create({
 
   /* ── Children row ── */
   childrenRow: {
-    gap: 12,
+    gap: 18,
     paddingBottom: 6,
-    paddingHorizontal: 2,
+    paddingHorizontal: 4,
     marginBottom: 28,
+    alignItems: "flex-start",
   },
-  childCard: {
-    width: 90,
-    borderRadius: 22,
-    backgroundColor: "#FFFFFF",
+
+  /* ── Circular avatar ── */
+  circleWrap: {
     alignItems: "center",
-    paddingBottom: 12,
-    overflow: "hidden",
-    shadowColor: "#6C4DFF",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.09,
-    shadowRadius: 12,
-    elevation: 4,
-    borderWidth: 2,
-    borderColor: "transparent",
+    width: 72,
   },
-  childCardAvatar: {
-    width: "100%",
-    height: 74,
-    borderRadius: 20,
+  circleGlowRing: {
+    position: "absolute",
+    top: -5,
+    left: -5,
+    width: 82,
+    height: 82,
+    borderRadius: 41,
+    borderWidth: 2.5,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.55,
+    shadowRadius: 14,
+    elevation: 0,
+  },
+  circleAvatar: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
-    marginBottom: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
   },
-  childCardOrb: {
+  circleShine: {
     position: "absolute",
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "rgba(255,255,255,0.18)",
-    top: -15,
-    right: -15,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.22)",
+    top: -8,
+    left: -8,
   },
-  childCardInitials: {
-    fontSize: 20,
+  circleInitials: {
+    fontSize: 22,
     fontWeight: "800",
     color: "#fff",
     fontFamily: "Inter_700Bold",
+    letterSpacing: -0.5,
   },
-  childCardName: {
-    fontSize: 12,
+  circleName: {
+    fontSize: 11,
     fontWeight: "600",
-    color: "#1A0F2E",
+    color: "#4A3880",
     fontFamily: "Inter_600SemiBold",
     textAlign: "center",
-    paddingHorizontal: 6,
+    marginTop: 8,
   },
-  childCardAge: {
-    fontSize: 10,
-    color: "#B0A0CC",
-    fontFamily: "Inter_400Regular",
-    marginTop: 2,
+  circleSelectedDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    marginTop: 4,
   },
-  childCardDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "#6C4DFF",
-    marginTop: 6,
-  },
-  addChildCard: {
-    width: 90,
-    height: 130,
-    borderRadius: 22,
+  addCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
+    borderWidth: 2,
+    borderColor: "#D4C8FF",
+    borderStyle: "dashed",
     shadowColor: "#6C4DFF",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.07,
+    shadowOpacity: 0.08,
     shadowRadius: 10,
     elevation: 3,
-    borderWidth: 2,
-    borderColor: "#E8E2FF",
-    borderStyle: "dashed",
   },
-  addChildIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: "#EDE9FF",
+
+  /* ── Cleared toast ── */
+  clearedToast: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    marginBottom: 14,
+    alignSelf: "center",
+    shadowColor: "#6C4DFF",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.14,
+    shadowRadius: 12,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: "#E8E2FF",
   },
-  addChildLabel: {
-    fontSize: 11,
-    color: "#8B7BAB",
+  clearedToastText: {
+    fontSize: 12,
+    color: "#5A4A7A",
     fontFamily: "Inter_500Medium",
-    textAlign: "center",
-    lineHeight: 16,
   },
 
   /* ── Chart card ── */
