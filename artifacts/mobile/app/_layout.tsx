@@ -35,6 +35,12 @@ function RootLayoutNav() {
       <Stack.Screen name="edit-child" />
       <Stack.Screen name="add-drawing" />
       <Stack.Screen name="drawing-detail" />
+      <Stack.Screen name="support-feedback" />
+      <Stack.Screen name="language" />
+      <Stack.Screen name="change-password" />
+      <Stack.Screen name="about-app" />
+      <Stack.Screen name="privacy-policy" />
+      <Stack.Screen name="terms-of-use" />
     </Stack>
   );
 }

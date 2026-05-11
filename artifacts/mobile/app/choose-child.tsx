@@ -85,18 +85,24 @@ export default function ChooseChildScreen() {
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
 
   const isUpload = mode === "upload";
-  const title    = isUpload ? "Upload Drawing" : "Start Drawing";
+  const isEdit   = mode === "edit";
+
+  const title    = isUpload ? "Upload Drawing" : isEdit ? "Edit Child Profile" : "Start Drawing";
   const subtitle = isUpload
     ? "Choose the child whose drawing you'd like to upload and analyze"
+    : isEdit
+    ? "Select a child to edit their profile and information"
     : "Choose the child who will draw today";
-  const btnLabel = isUpload ? "Continue to Upload" : "Continue to Draw";
-  const btnIcon  = isUpload ? "cloud-upload-outline" : "brush-outline";
+  const btnLabel = isUpload ? "Continue to Upload" : isEdit ? "Open Profile" : "Continue to Draw";
+  const btnIcon  = (isUpload ? "cloud-upload-outline" : isEdit ? "create-outline" : "brush-outline") as any;
 
   function handleNext() {
     if (!selected) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (isUpload) {
       router.push({ pathname: "/add-drawing", params: { childId: selected } });
+    } else if (isEdit) {
+      router.push({ pathname: "/edit-child", params: { childId: selected } });
     } else {
       router.push({ pathname: "/drawing-canvas", params: { childId: selected } });
     }
@@ -116,7 +122,7 @@ export default function ChooseChildScreen() {
       {/* Header */}
       <View style={styles.header}>
         <LinearGradient
-          colors={isUpload ? ["#5535E8", "#6C4DFF"] : ["#C084FC", "#7C3AED"]}
+          colors={isUpload ? ["#5535E8", "#6C4DFF"] : isEdit ? ["#6C4DFF", "#B89CFF"] : ["#C084FC", "#7C3AED"]}
           style={styles.headerIcon}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
@@ -169,7 +175,9 @@ export default function ChooseChildScreen() {
           >
             <LinearGradient
               colors={selected
-                ? isUpload ? ["#5535E8", "#6C4DFF", "#9B7FFF"] : ["#C084FC", "#A855F7", "#7C3AED"]
+                ? isUpload ? ["#5535E8", "#6C4DFF", "#9B7FFF"]
+                  : isEdit ? ["#6C4DFF", "#9B7FFF", "#B89CFF"]
+                  : ["#C084FC", "#A855F7", "#7C3AED"]
                 : ["#C0B0D8", "#D0C0E8"]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
