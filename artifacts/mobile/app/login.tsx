@@ -1,5 +1,6 @@
-import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -13,7 +14,6 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { GradientButton } from "@/components/GradientButton";
 import { useApp } from "@/context/AppContext";
 
 export default function LoginScreen() {
@@ -32,7 +32,7 @@ export default function LoginScreen() {
   const handleSubmit = async () => {
     if (!email || !password) return;
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 1200));
+    await new Promise((r) => setTimeout(r, 1000));
     await login(email, name || email.split("@")[0] || "Parent");
     setLoading(false);
     router.replace("/(tabs)");
@@ -40,8 +40,10 @@ export default function LoginScreen() {
 
   return (
     <LinearGradient
-      colors={["#FDF8F5", "#F5ECF8"]}
-      style={[styles.container]}
+      colors={["#F8EEFF", "#FDE8F3", "#FFF5F0"]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.container}
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -50,41 +52,46 @@ export default function LoginScreen() {
         <ScrollView
           contentContainerStyle={[
             styles.scroll,
-            { paddingTop: topPad + 20, paddingBottom: botPad + 20 },
+            { paddingTop: topPad + 12, paddingBottom: botPad + 32 },
           ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.header}>
-            <LinearGradient
-              colors={["#C4A8F5", "#F0A8C8"]}
-              style={styles.logoCircle}
-            >
-              <Ionicons name="brain" size={32} color="#fff" />
-            </LinearGradient>
-            <Text style={styles.title}>
-              {isSignUp ? "Create Account" : "Welcome Back"}
-            </Text>
-            <Text style={styles.subtitle}>
-              {isSignUp
-                ? "Join Draw Mind AI today"
-                : "Sign in to your account"}
-            </Text>
+          {/* Back button */}
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backBtn}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="arrow-back" size={22} color="#4A3070" />
+          </TouchableOpacity>
+
+          {/* Whale mascot */}
+          <View style={styles.mascotWrap}>
+            <Image
+              source={require("../assets/images/whale-paintbrush.png")}
+              style={styles.mascot}
+              contentFit="contain"
+            />
           </View>
 
-          <View style={styles.card}>
+          {/* Title */}
+          <Text style={styles.title}>
+            {isSignUp ? "Create Account" : "Welcome Back"}
+          </Text>
+          <Text style={styles.subtitle}>
+            {isSignUp ? "Join Draw Mind AI today" : "Sign in to continue"}
+          </Text>
+
+          {/* Form */}
+          <View style={styles.form}>
             {isSignUp && (
               <View style={styles.inputWrap}>
-                <Ionicons
-                  name="person-outline"
-                  size={20}
-                  color="#A090B8"
-                  style={styles.inputIcon}
-                />
+                <Ionicons name="person-outline" size={18} color="#B0A0C8" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Full Name"
-                  placeholderTextColor="#A090B8"
+                  placeholderTextColor="#C0B0D8"
                   value={name}
                   onChangeText={setName}
                   autoCapitalize="words"
@@ -93,16 +100,11 @@ export default function LoginScreen() {
             )}
 
             <View style={styles.inputWrap}>
-              <Ionicons
-                name="mail-outline"
-                size={20}
-                color="#A090B8"
-                style={styles.inputIcon}
-              />
+              <Ionicons name="mail-outline" size={18} color="#B0A0C8" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder="Email address"
-                placeholderTextColor="#A090B8"
+                placeholder="Email"
+                placeholderTextColor="#C0B0D8"
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -111,64 +113,67 @@ export default function LoginScreen() {
             </View>
 
             <View style={styles.inputWrap}>
-              <Ionicons
-                name="lock-closed-outline"
-                size={20}
-                color="#A090B8"
-                style={styles.inputIcon}
-              />
+              <Ionicons name="lock-closed-outline" size={18} color="#B0A0C8" style={styles.inputIcon} />
               <TextInput
                 style={[styles.input, { flex: 1 }]}
                 placeholder="Password"
-                placeholderTextColor="#A090B8"
+                placeholderTextColor="#C0B0D8"
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
               />
-              <TouchableOpacity
-                onPress={() => setShowPassword(!showPassword)}
-                style={styles.eyeBtn}
-              >
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
                 <Ionicons
                   name={showPassword ? "eye-outline" : "eye-off-outline"}
-                  size={20}
-                  color="#A090B8"
+                  size={18}
+                  color="#B0A0C8"
                 />
               </TouchableOpacity>
             </View>
 
             {!isSignUp && (
               <TouchableOpacity style={styles.forgotWrap}>
-                <Text style={styles.forgot}>Forgot Password?</Text>
+                <Text style={styles.forgot}>Forget Password?</Text>
               </TouchableOpacity>
             )}
 
-            <GradientButton
-              label={isSignUp ? "Create Account" : "Sign In"}
+            {/* Sign In / Sign Up button */}
+            <TouchableOpacity
               onPress={handleSubmit}
-              loading={loading}
-              style={styles.signInBtn}
-              size="lg"
-            />
+              activeOpacity={0.85}
+              disabled={loading}
+              style={styles.submitBtnWrap}
+            >
+              <LinearGradient
+                colors={["#A78BFA", "#9B7FEE"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.submitBtn}
+              >
+                <Text style={styles.submitBtnText}>
+                  {loading ? "Please wait…" : isSignUp ? "Create Account" : "Sign In"}
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
 
-            <View style={styles.dividerRow}>
-              <View style={styles.divider} />
-              <Text style={styles.dividerText}>or continue with</Text>
-              <View style={styles.divider} />
-            </View>
+            {/* Divider */}
+            <Text style={styles.orText}>or continue with</Text>
 
+            {/* Social buttons */}
             <View style={styles.socialRow}>
               <TouchableOpacity style={styles.socialBtn}>
-                <Ionicons name="logo-google" size={22} color="#A78BFA" />
-                <Text style={styles.socialLabel}>Google</Text>
+                <Text style={styles.googleG}>G</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.socialBtn}>
                 <Ionicons name="logo-apple" size={22} color="#4A3070" />
-                <Text style={styles.socialLabel}>Apple</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.socialBtn}>
+                <Ionicons name="mail-outline" size={20} color="#A78BFA" />
               </TouchableOpacity>
             </View>
           </View>
 
+          {/* Switch Sign In / Sign Up */}
           <View style={styles.switchRow}>
             <Text style={styles.switchText}>
               {isSignUp ? "Already have an account? " : "Don't have an account? "}
@@ -188,63 +193,61 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scroll: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 28,
     flexGrow: 1,
   },
-  header: {
-    alignItems: "center",
-    marginBottom: 32,
+
+  backBtn: {
+    alignSelf: "flex-start",
+    marginBottom: 8,
   },
-  logoCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+
+  mascotWrap: {
     alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 16,
-    shadowColor: "#C4A8F5",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
-    shadowRadius: 16,
-    elevation: 8,
+    marginBottom: 20,
+    marginTop: 4,
   },
+  mascot: {
+    width: 110,
+    height: 110,
+  },
+
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: "800",
-    color: "#4A3070",
+    color: "#3D2B6E",
     fontFamily: "Inter_700Bold",
+    textAlign: "center",
     marginBottom: 6,
+    letterSpacing: -0.3,
   },
   subtitle: {
-    fontSize: 15,
+    fontSize: 14,
     color: "#A090B8",
     fontFamily: "Inter_400Regular",
+    textAlign: "center",
+    marginBottom: 32,
   },
-  card: {
-    backgroundColor: "rgba(255,248,252,0.97)",
-    borderRadius: 28,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: "rgba(234,212,245,0.6)",
-    shadowColor: "#C4A8F5",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.1,
-    shadowRadius: 24,
-    elevation: 6,
+
+  form: {
     gap: 14,
   },
+
   inputWrap: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFF0F6",
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    height: 54,
-    borderWidth: 1,
-    borderColor: "#EAD4F5",
+    backgroundColor: "rgba(255,255,255,0.75)",
+    borderRadius: 18,
+    paddingHorizontal: 18,
+    height: 56,
+    shadowColor: "#C4A8F5",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 2,
   },
   inputIcon: {
-    marginRight: 10,
+    marginRight: 12,
   },
   input: {
     flex: 1,
@@ -255,59 +258,78 @@ const styles = StyleSheet.create({
   eyeBtn: {
     padding: 4,
   },
+
   forgotWrap: {
     alignSelf: "flex-end",
+    marginTop: -4,
   },
   forgot: {
     fontSize: 13,
     color: "#A78BFA",
-    fontFamily: "Inter_600SemiBold",
-    fontWeight: "600",
+    fontFamily: "Inter_500Medium",
+    fontWeight: "500",
   },
-  signInBtn: {
+
+  submitBtnWrap: {
     marginTop: 4,
   },
-  dividerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  divider: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "#EAD4F5",
-  },
-  dividerText: {
-    fontSize: 13,
-    color: "#A090B8",
-    fontFamily: "Inter_400Regular",
-  },
-  socialRow: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  socialBtn: {
-    flex: 1,
-    flexDirection: "row",
+  submitBtn: {
+    height: 56,
+    borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    backgroundColor: "#FFF5F8",
-    borderRadius: 14,
-    height: 50,
-    borderWidth: 1,
-    borderColor: "#EAD4F5",
+    shadowColor: "#A78BFA",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    elevation: 8,
   },
-  socialLabel: {
-    fontSize: 15,
-    fontFamily: "Inter_600SemiBold",
-    fontWeight: "600",
-    color: "#4A3070",
+  submitBtnText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#fff",
+    fontFamily: "Inter_700Bold",
+    letterSpacing: 0.3,
   },
+
+  orText: {
+    fontSize: 13,
+    color: "#B0A0C8",
+    fontFamily: "Inter_400Regular",
+    textAlign: "center",
+    marginVertical: 4,
+  },
+
+  socialRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 16,
+  },
+  socialBtn: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.8)",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#C4A8F5",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  googleG: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#4285F4",
+    fontFamily: "Inter_700Bold",
+  },
+
   switchRow: {
     flexDirection: "row",
     justifyContent: "center",
-    marginTop: 24,
+    alignItems: "center",
+    marginTop: 32,
   },
   switchText: {
     fontSize: 14,
