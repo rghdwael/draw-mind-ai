@@ -42,22 +42,6 @@ const QUICK_ACTIONS = [
     gradientEnd: "#8B6BFF",
     route: "/choose-child" as const,
   },
-  {
-    icon: "analytics",
-    label: "AI Analysis",
-    sub: "View insights",
-    gradientStart: "#48CAE4",
-    gradientEnd: "#0096C7",
-    route: "/(tabs)/drawings" as const,
-  },
-  {
-    icon: "chatbubble-ellipses",
-    label: "Chat Assistant",
-    sub: "Ask the AI",
-    gradientStart: "#FF6B9D",
-    gradientEnd: "#C9184A",
-    route: "/(tabs)/chat" as const,
-  },
 ];
 
 function QuickActionCard({
