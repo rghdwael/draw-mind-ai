@@ -249,7 +249,7 @@ export default function HomeScreen() {
 
         {/* ── Quick Actions ── */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <Text style={styles.sectionTitle}>Recent Drawings</Text>
           <View style={styles.qaGrid}>
             {QUICK_ACTIONS.map((action) => (
               <QuickActionCard
