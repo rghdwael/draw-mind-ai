@@ -1,87 +1,62 @@
 import React, { useEffect, useRef } from "react";
-
-export interface Point    { x: number; y: number }
-export interface DrawPath { points: Point[]; color: string; width: number; isEraser: boolean }
-export type Tool = "pencil" | "brush" | "eraser";
-
-export interface DrawingAreaProps {
-  paths: DrawPath[];
-  activeTool: Tool;
-  selectedColor: string;
-  onStrokeComplete: (stroke: DrawPath) => void;
-}
+import type { DrawPath, DrawingAreaProps, Point, Tool } from "./DrawingArea";
 
 function toolWidth(tool: Tool)            { return tool === "brush" ? 10 : tool === "eraser" ? 28 : 4; }
 function toolColor(tool: Tool, c: string) { return tool === "eraser" ? "#FFFFFF" : c; }
 
-function drawPathOnCtx(ctx: CanvasRenderingContext2D, path: DrawPath) {
-  if (path.points.length === 0) return;
-  ctx.beginPath();
-  ctx.strokeStyle = path.color;
-  ctx.fillStyle   = path.color;
-  ctx.lineWidth   = path.width;
-  ctx.lineCap     = "round";
-  ctx.lineJoin    = "round";
-  if (path.points.length === 1) {
-    ctx.arc(path.points[0].x, path.points[0].y, path.width / 2, 0, Math.PI * 2);
-    ctx.fill();
-    return;
-  }
-  ctx.moveTo(path.points[0].x, path.points[0].y);
-  for (let i = 1; i < path.points.length; i++) {
-    ctx.lineTo(path.points[i].x, path.points[i].y);
-  }
-  ctx.stroke();
-}
-
-function redrawAll(canvas: HTMLCanvasElement, paths: DrawPath[]) {
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  for (const p of paths) drawPathOnCtx(ctx, p);
-}
-
 export function DrawingArea({ paths, activeTool, selectedColor, onStrokeComplete }: DrawingAreaProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const canvasRef    = useRef<HTMLCanvasElement>(null);
-  const isDrawing    = useRef(false);
-  const currentPts   = useRef<Point[]>([]);
-  const toolRef      = useRef<Tool>(activeTool);
-  const colorRef     = useRef(selectedColor);
-  const pathsRef     = useRef<DrawPath[]>(paths);
+  const containerRef    = useRef<HTMLDivElement>(null);
+  const canvasRef       = useRef<HTMLCanvasElement>(null);
+  const isDrawing       = useRef(false);
+  const currentPts      = useRef<Point[]>([]);
+  const toolRef         = useRef<Tool>(activeTool);
+  const colorRef        = useRef(selectedColor);
+  const prevLenRef      = useRef(0);
 
   useEffect(() => { toolRef.current  = activeTool;    }, [activeTool]);
   useEffect(() => { colorRef.current = selectedColor; }, [selectedColor]);
-  useEffect(() => { pathsRef.current = paths;         }, [paths]);
 
-  // Resize canvas to match its CSS container, then redraw
+  // ── Size the canvas once, as soon as the container has a non-zero layout ──
   useEffect(() => {
     const container = containerRef.current;
     const canvas    = canvasRef.current;
     if (!container || !canvas) return;
 
-    function resize() {
+    let sized = false;
+
+    function trySize() {
+      if (sized) return;
       const { width, height } = container!.getBoundingClientRect();
       if (width > 0 && height > 0) {
         canvas!.width  = width;
         canvas!.height = height;
-        redrawAll(canvas!, pathsRef.current);
+        sized = true;
+        ro.disconnect();
       }
     }
 
-    resize();
-    const ro = new ResizeObserver(resize);
+    const ro = new ResizeObserver(trySize);
     ro.observe(container);
+    trySize();
     return () => ro.disconnect();
   }, []);
 
-  // Redraw all committed paths whenever they change
+  // ── Only react to path LENGTH changes ──────────────────────────────────────
+  // Incrementally-drawn pixels live on the canvas permanently.
+  // The ONLY time we touch the canvas here is when paths resets to 0
+  // (the user pressed Clear), in which case we clear the canvas.
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    redrawAll(canvas, paths);
-  }, [paths]);
+    const ctx    = canvas?.getContext("2d");
+    if (!ctx || !canvas) return;
 
+    if (paths.length === 0 && prevLenRef.current > 0) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+    prevLenRef.current = paths.length;
+  }, [paths.length]);
+
+  // ── Pointer helpers ────────────────────────────────────────────────────────
   function getPos(e: React.PointerEvent<HTMLCanvasElement>): Point {
     const rect = canvasRef.current!.getBoundingClientRect();
     return { x: e.clientX - rect.left, y: e.clientY - rect.top };
@@ -89,20 +64,17 @@ export function DrawingArea({ paths, activeTool, selectedColor, onStrokeComplete
 
   function handlePointerDown(e: React.PointerEvent<HTMLCanvasElement>) {
     (e.target as HTMLCanvasElement).setPointerCapture(e.pointerId);
-    isDrawing.current  = true;
-    const pt           = getPos(e);
+    isDrawing.current = true;
+    const pt = getPos(e);
     currentPts.current = [pt];
 
-    // Draw starting dot immediately so single taps are visible
+    // Draw the starting dot so single taps are visible
     const ctx = canvasRef.current?.getContext("2d");
-    if (ctx) {
-      const tool  = toolRef.current;
-      const color = colorRef.current;
-      ctx.beginPath();
-      ctx.fillStyle = toolColor(tool, color);
-      ctx.arc(pt.x, pt.y, toolWidth(tool) / 2, 0, Math.PI * 2);
-      ctx.fill();
-    }
+    if (!ctx) return;
+    ctx.beginPath();
+    ctx.fillStyle = toolColor(toolRef.current, colorRef.current);
+    ctx.arc(pt.x, pt.y, toolWidth(toolRef.current) / 2, 0, Math.PI * 2);
+    ctx.fill();
   }
 
   function handlePointerMove(e: React.PointerEvent<HTMLCanvasElement>) {
@@ -112,18 +84,17 @@ export function DrawingArea({ paths, activeTool, selectedColor, onStrokeComplete
     currentPts.current.push(pt);
 
     const ctx = canvasRef.current?.getContext("2d");
-    if (ctx && prev) {
-      const tool  = toolRef.current;
-      const color = colorRef.current;
-      ctx.beginPath();
-      ctx.strokeStyle = toolColor(tool, color);
-      ctx.lineWidth   = toolWidth(tool);
-      ctx.lineCap     = "round";
-      ctx.lineJoin    = "round";
-      ctx.moveTo(prev.x, prev.y);
-      ctx.lineTo(pt.x, pt.y);
-      ctx.stroke();
-    }
+    if (!ctx || !prev) return;
+
+    // Draw the new segment directly on the persistent canvas
+    ctx.beginPath();
+    ctx.strokeStyle = toolColor(toolRef.current, colorRef.current);
+    ctx.lineWidth   = toolWidth(toolRef.current);
+    ctx.lineCap     = "round";
+    ctx.lineJoin    = "round";
+    ctx.moveTo(prev.x, prev.y);
+    ctx.lineTo(pt.x, pt.y);
+    ctx.stroke();
   }
 
   function handlePointerUp() {
@@ -131,13 +102,13 @@ export function DrawingArea({ paths, activeTool, selectedColor, onStrokeComplete
     isDrawing.current = false;
 
     if (currentPts.current.length > 0) {
-      const tool  = toolRef.current;
-      const color = colorRef.current;
+      // Pixels are already on the canvas — do NOT clear or redraw.
+      // Just notify the parent so it can track paths for analysis/save.
       onStrokeComplete({
         points:   [...currentPts.current],
-        color:    toolColor(tool, color),
-        width:    toolWidth(tool),
-        isEraser: tool === "eraser",
+        color:    toolColor(toolRef.current, colorRef.current),
+        width:    toolWidth(toolRef.current),
+        isEraser: toolRef.current === "eraser",
       });
       currentPts.current = [];
     }
