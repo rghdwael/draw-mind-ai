@@ -24,7 +24,7 @@ const AVATAR_COLORS = [
   { color: "#F3722C", label: "Coral" },
 ];
 
-const GENDERS = ["Male", "Female", "Other"];
+const GENDERS = ["Male", "Female"];
 
 export default function AddChildScreen() {
   const insets = useSafeAreaInsets();
