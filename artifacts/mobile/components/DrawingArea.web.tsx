@@ -1,138 +1,164 @@
 import React, { useEffect, useRef } from "react";
 import type { DrawPath, DrawingAreaProps, Point, Tool } from "./DrawingArea";
 
+// ── helpers ───────────────────────────────────────────────────────────────────
 function toolWidth(tool: Tool)            { return tool === "brush" ? 10 : tool === "eraser" ? 28 : 4; }
 function toolColor(tool: Tool, c: string) { return tool === "eraser" ? "#FFFFFF" : c; }
 
+function renderPath(ctx: CanvasRenderingContext2D, pts: Point[], color: string, width: number) {
+  if (pts.length === 0) return;
+  ctx.beginPath();
+  ctx.strokeStyle = color;
+  ctx.fillStyle   = color;
+  ctx.lineWidth   = width;
+  ctx.lineCap     = "round";
+  ctx.lineJoin    = "round";
+  if (pts.length === 1) {
+    ctx.arc(pts[0].x, pts[0].y, width / 2, 0, Math.PI * 2);
+    ctx.fill();
+    return;
+  }
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+  ctx.stroke();
+}
+
+// ── component ─────────────────────────────────────────────────────────────────
 export function DrawingArea({ paths, activeTool, selectedColor, onStrokeComplete }: DrawingAreaProps) {
-  const containerRef    = useRef<HTMLDivElement>(null);
-  const canvasRef       = useRef<HTMLCanvasElement>(null);
-  const isDrawing       = useRef(false);
-  const currentPts      = useRef<Point[]>([]);
-  const toolRef         = useRef<Tool>(activeTool);
-  const colorRef        = useRef(selectedColor);
-  const prevLenRef      = useRef(0);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // All committed strokes live here — purely in a ref, never in React state
+  const committedRef = useRef<DrawPath[]>([]);
+  const liveRef      = useRef<Point[]>([]);   // points of the in-progress stroke
+  const isDrawing    = useRef(false);
+  const toolRef      = useRef<Tool>(activeTool);
+  const colorRef     = useRef(selectedColor);
+  const rafRef       = useRef(0);
 
   useEffect(() => { toolRef.current  = activeTool;    }, [activeTool]);
   useEffect(() => { colorRef.current = selectedColor; }, [selectedColor]);
 
-  // ── Size the canvas once, as soon as the container has a non-zero layout ──
-  useEffect(() => {
-    const container = containerRef.current;
-    const canvas    = canvasRef.current;
-    if (!container || !canvas) return;
-
-    let sized = false;
-
-    function trySize() {
-      if (sized) return;
-      const { width, height } = container!.getBoundingClientRect();
-      if (width > 0 && height > 0) {
-        canvas!.width  = width;
-        canvas!.height = height;
-        sized = true;
-        ro.disconnect();
-      }
-    }
-
-    const ro = new ResizeObserver(trySize);
-    ro.observe(container);
-    trySize();
-    return () => ro.disconnect();
-  }, []);
-
-  // ── Only react to path LENGTH changes ──────────────────────────────────────
-  // Incrementally-drawn pixels live on the canvas permanently.
-  // The ONLY time we touch the canvas here is when paths resets to 0
-  // (the user pressed Clear), in which case we clear the canvas.
+  // ── Bootstrap: size canvas + start RAF render loop ───────────────────────
   useEffect(() => {
     const canvas = canvasRef.current;
-    const ctx    = canvas?.getContext("2d");
-    if (!ctx || !canvas) return;
+    if (!canvas) return;
 
-    if (paths.length === 0 && prevLenRef.current > 0) {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // Set the canvas's intrinsic pixel size to match its CSS rendered size.
+    // ResizeObserver handles the initial layout and any future container resizes.
+    function syncSize() {
+      const w = Math.round(canvas!.offsetWidth);
+      const h = Math.round(canvas!.offsetHeight);
+      if (w > 0 && h > 0 && (canvas!.width !== w || canvas!.height !== h)) {
+        canvas!.width  = w;
+        canvas!.height = h;
+        // canvas is cleared by the width assignment — the RAF loop redraws it
+      }
     }
-    prevLenRef.current = paths.length;
+    const ro = new ResizeObserver(syncSize);
+    ro.observe(canvas);
+    syncSize();
+
+    // RAF loop — single source of visual truth.
+    // Draws ALL committed paths PLUS the live in-progress stroke every frame.
+    // Completely independent of React state; reads only refs.
+    function render() {
+      const ctx = canvas!.getContext("2d");
+      if (ctx && canvas!.width > 0 && canvas!.height > 0) {
+        ctx.clearRect(0, 0, canvas!.width, canvas!.height);
+
+        // Draw every saved stroke
+        for (const p of committedRef.current) {
+          renderPath(ctx, p.points, p.color, p.width);
+        }
+
+        // Draw the stroke currently being drawn
+        if (liveRef.current.length > 1) {
+          renderPath(
+            ctx,
+            liveRef.current,
+            toolColor(toolRef.current, colorRef.current),
+            toolWidth(toolRef.current),
+          );
+        }
+      }
+      rafRef.current = requestAnimationFrame(render);
+    }
+    rafRef.current = requestAnimationFrame(render);
+
+    return () => {
+      cancelAnimationFrame(rafRef.current);
+      ro.disconnect();
+    };
+  }, []);
+
+  // ── Sync: detect Clear button (paths resets to []) ───────────────────────
+  useEffect(() => {
+    if (paths.length === 0) {
+      committedRef.current = [];
+      liveRef.current      = [];
+    }
   }, [paths.length]);
 
-  // ── Pointer helpers ────────────────────────────────────────────────────────
+  // ── Pointer coordinate helper ─────────────────────────────────────────────
   function getPos(e: React.PointerEvent<HTMLCanvasElement>): Point {
-    const rect = canvasRef.current!.getBoundingClientRect();
-    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    const canvas = canvasRef.current!;
+    const rect   = canvas.getBoundingClientRect();
+    // Scale CSS pixels → canvas pixels (handles devicePixelRatio / zoom)
+    const sx = canvas.width  / rect.width;
+    const sy = canvas.height / rect.height;
+    return {
+      x: (e.clientX - rect.left) * sx,
+      y: (e.clientY - rect.top)  * sy,
+    };
   }
 
+  // ── Pointer handlers ──────────────────────────────────────────────────────
   function handlePointerDown(e: React.PointerEvent<HTMLCanvasElement>) {
     (e.target as HTMLCanvasElement).setPointerCapture(e.pointerId);
-    isDrawing.current = true;
-    const pt = getPos(e);
-    currentPts.current = [pt];
-
-    // Draw the starting dot so single taps are visible
-    const ctx = canvasRef.current?.getContext("2d");
-    if (!ctx) return;
-    ctx.beginPath();
-    ctx.fillStyle = toolColor(toolRef.current, colorRef.current);
-    ctx.arc(pt.x, pt.y, toolWidth(toolRef.current) / 2, 0, Math.PI * 2);
-    ctx.fill();
+    isDrawing.current  = true;
+    liveRef.current    = [getPos(e)];
   }
 
   function handlePointerMove(e: React.PointerEvent<HTMLCanvasElement>) {
     if (!isDrawing.current) return;
-    const pt   = getPos(e);
-    const prev = currentPts.current[currentPts.current.length - 1];
-    currentPts.current.push(pt);
-
-    const ctx = canvasRef.current?.getContext("2d");
-    if (!ctx || !prev) return;
-
-    // Draw the new segment directly on the persistent canvas
-    ctx.beginPath();
-    ctx.strokeStyle = toolColor(toolRef.current, colorRef.current);
-    ctx.lineWidth   = toolWidth(toolRef.current);
-    ctx.lineCap     = "round";
-    ctx.lineJoin    = "round";
-    ctx.moveTo(prev.x, prev.y);
-    ctx.lineTo(pt.x, pt.y);
-    ctx.stroke();
+    liveRef.current.push(getPos(e));   // mutate in place — RAF reads it next frame
   }
 
   function handlePointerUp() {
     if (!isDrawing.current) return;
     isDrawing.current = false;
 
-    if (currentPts.current.length > 0) {
-      // Pixels are already on the canvas — do NOT clear or redraw.
-      // Just notify the parent so it can track paths for analysis/save.
-      onStrokeComplete({
-        points:   [...currentPts.current],
+    if (liveRef.current.length > 0) {
+      const stroke: DrawPath = {
+        points:   [...liveRef.current],
         color:    toolColor(toolRef.current, colorRef.current),
         width:    toolWidth(toolRef.current),
         isEraser: toolRef.current === "eraser",
-      });
-      currentPts.current = [];
+      };
+
+      // Add to local persistent ref FIRST so RAF renders it immediately
+      committedRef.current = [...committedRef.current, stroke];
+      liveRef.current      = [];
+
+      // Then notify parent (for analysis/save) — async React state update is fine
+      onStrokeComplete(stroke);
     }
   }
 
   return (
-    <div
-      ref={containerRef}
-      style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
-    >
-      <canvas
-        ref={canvasRef}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerLeave={handlePointerUp}
-        style={{
-          display:     "block",
-          width:       "100%",
-          height:      "100%",
-          touchAction: "none",
-          cursor:      activeTool === "eraser" ? "cell" : "crosshair",
-        }}
-      />
-    </div>
+    <canvas
+      ref={canvasRef}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerLeave={handlePointerUp}
+      style={{
+        display:     "block",
+        width:       "100%",
+        height:      "100%",
+        touchAction: "none",
+        cursor:      activeTool === "eraser" ? "cell" : "crosshair",
+      }}
+    />
   );
 }
