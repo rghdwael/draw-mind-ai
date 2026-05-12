@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import type { DrawPath, DrawingAreaProps, Point, Tool } from "./DrawingArea";
 
-// ── tiny helpers ──────────────────────────────────────────────────────────────
+// ── helpers ───────────────────────────────────────────────────────────────────
 function tw(t: Tool) { return t === "brush" ? 10 : t === "eraser" ? 28 : 4; }
 function tc(t: Tool, c: string) { return t === "eraser" ? "#FFFFFF" : c; }
 
@@ -24,76 +24,78 @@ function paint(ctx: CanvasRenderingContext2D, pts: Point[], color: string, width
 }
 
 // ── component ─────────────────────────────────────────────────────────────────
-export function DrawingArea({ paths, activeTool, selectedColor, onStrokeComplete }: DrawingAreaProps) {
-  const canvasRef    = useRef<HTMLCanvasElement>(null);
+export function DrawingArea({
+  paths,
+  activeTool,
+  selectedColor,
+  onStrokeComplete,
+  canvasWidth,
+  canvasHeight,
+}: DrawingAreaProps) {
+  const canvasRef  = useRef<HTMLCanvasElement>(null);
 
-  // All rendering state lives in refs — completely outside React's render cycle
-  const committed    = useRef<DrawPath[]>([]);   // every finished stroke
-  const live         = useRef<Point[]>([]);       // points being drawn right now
-  const drawing      = useRef(false);
-  const toolRef      = useRef<Tool>(activeTool);
-  const colorRef     = useRef(selectedColor);
-  const rafId        = useRef(0);
-  const prevLenRef   = useRef(0);                 // track paths.length across renders
+  // All state lives in refs — rendering is fully independent of React
+  const committed  = useRef<DrawPath[]>([]);
+  const live       = useRef<Point[]>([]);
+  const drawing    = useRef(false);
+  const toolRef    = useRef<Tool>(activeTool);
+  const colorRef   = useRef(selectedColor);
+  const rafId      = useRef(0);
+  const prevLen    = useRef(0);
 
-  // Keep tool/color refs in sync with props
   useEffect(() => { toolRef.current  = activeTool;    }, [activeTool]);
   useEffect(() => { colorRef.current = selectedColor; }, [selectedColor]);
 
-  // ── One-time setup: size canvas then start RAF loop ───────────────────────
+  // ── Apply explicit canvas dimensions when parent provides them ────────────
+  // canvasWidth/canvasHeight come from React Native's onLayout, which always
+  // returns correct pixel dimensions on both native and web.
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !canvasWidth || !canvasHeight) return;
+    if (canvas.width === canvasWidth && canvas.height === canvasHeight) return;
+
+    // Preserve existing drawing before resize (save → resize → restore)
+    const ctx = canvas.getContext("2d");
+    let saved: ImageData | null = null;
+    if (ctx && canvas.width > 0 && canvas.height > 0) {
+      try { saved = ctx.getImageData(0, 0, canvas.width, canvas.height); } catch { /* ignore */ }
+    }
+    canvas.width  = canvasWidth;
+    canvas.height = canvasHeight;
+    if (saved && ctx) ctx.putImageData(saved, 0, 0);
+  }, [canvasWidth, canvasHeight]);
+
+  // ── RAF render loop (single source of visual truth) ──────────────────────
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // Size the canvas intrinsic pixels to its CSS rendered size.
-    // We do this ONCE and never again — resetting canvas.width clears all pixels.
-    function size() {
-      const w = Math.round(canvas!.offsetWidth);
-      const h = Math.round(canvas!.offsetHeight);
-      if (w > 0 && h > 0) {
-        canvas!.width  = w;
-        canvas!.height = h;
-        ro.disconnect();          // disconnect immediately — we never want another resize
-      }
-    }
-    const ro = new ResizeObserver(size);
-    ro.observe(canvas);
-    size();                       // try immediately in case already laid out
-
-    // RAF loop — the one and only place pixels are written to screen.
-    // Clears the canvas then redraws ALL committed strokes + current live stroke.
-    // Reads only refs so it is immune to React re-render timing.
     function loop() {
       const ctx = canvas!.getContext("2d");
       if (ctx && canvas!.width > 0 && canvas!.height > 0) {
         ctx.clearRect(0, 0, canvas!.width, canvas!.height);
         for (const p of committed.current) paint(ctx, p.points, p.color, p.width);
-        if (live.current.length > 1) paint(ctx, live.current, tc(toolRef.current, colorRef.current), tw(toolRef.current));
+        if (live.current.length > 1) {
+          paint(ctx, live.current, tc(toolRef.current, colorRef.current), tw(toolRef.current));
+        }
       }
       rafId.current = requestAnimationFrame(loop);
     }
     rafId.current = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(rafId.current);
+  }, []); // runs once — reads only refs
 
-    return () => {
-      cancelAnimationFrame(rafId.current);
-      ro.disconnect();
-    };
-  }, []); // runs once on mount
-
-  // ── Detect Clear button: paths.length drops from >0 → 0 ──────────────────
-  // Guard with prevLenRef so mounting with paths=[] does NOT wipe committed.
+  // ── Detect Clear (paths.length drops from >0 to 0) ───────────────────────
   useEffect(() => {
-    const prev = prevLenRef.current;
-    prevLenRef.current = paths.length;
-
+    const prev = prevLen.current;
+    prevLen.current = paths.length;
     if (paths.length === 0 && prev > 0) {
-      // User pressed Clear — wipe both the ref and the live stroke
       committed.current = [];
       live.current      = [];
     }
-  });  // intentionally no dep array — runs after every render, compares prev vs current
+  }); // no dep array — runs after every render, prev guards against false clears
 
-  // ── Pointer coordinate helper (CSS px → canvas px) ───────────────────────
+  // ── Pointer coordinate helper ─────────────────────────────────────────────
   function pos(e: React.PointerEvent<HTMLCanvasElement>): Point {
     const c    = canvasRef.current!;
     const rect = c.getBoundingClientRect();
@@ -112,13 +114,12 @@ export function DrawingArea({ paths, activeTool, selectedColor, onStrokeComplete
 
   function onMove(e: React.PointerEvent<HTMLCanvasElement>) {
     if (!drawing.current) return;
-    live.current.push(pos(e));   // mutate in place — RAF reads it next frame
+    live.current.push(pos(e));
   }
 
   function onUp() {
     if (!drawing.current) return;
     drawing.current = false;
-
     if (live.current.length > 0) {
       const stroke: DrawPath = {
         points:   [...live.current],
@@ -126,11 +127,8 @@ export function DrawingArea({ paths, activeTool, selectedColor, onStrokeComplete
         width:    tw(toolRef.current),
         isEraser: toolRef.current === "eraser",
       };
-      // Commit the stroke to our persistent ref FIRST — visible on next RAF frame
       committed.current = [...committed.current, stroke];
       live.current      = [];
-
-      // Notify parent (async React state update — irrelevant to our rendering)
       onStrokeComplete(stroke);
     }
   }
@@ -138,16 +136,20 @@ export function DrawingArea({ paths, activeTool, selectedColor, onStrokeComplete
   return (
     <canvas
       ref={canvasRef}
+      width={canvasWidth  ?? 300}
+      height={canvasHeight ?? 150}
       onPointerDown={onDown}
       onPointerMove={onMove}
       onPointerUp={onUp}
       onPointerLeave={onUp}
       style={{
-        display:     "block",
-        width:       "100%",
-        height:      "100%",
+        position:    "absolute",
+        top:         0,
+        left:        0,
+        width:       canvasWidth  ? `${canvasWidth}px`  : "100%",
+        height:      canvasHeight ? `${canvasHeight}px` : "100%",
         touchAction: "none",
-        outline:     "none",     // prevent focus ring from causing layout shifts
+        outline:     "none",
         cursor:      activeTool === "eraser" ? "cell" : "crosshair",
       }}
     />

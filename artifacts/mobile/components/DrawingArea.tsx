@@ -11,6 +11,8 @@ export interface DrawingAreaProps {
   activeTool: Tool;
   selectedColor: string;
   onStrokeComplete: (stroke: DrawPath) => void;
+  canvasWidth?: number;
+  canvasHeight?: number;
 }
 
 function toolWidth(tool: Tool)            { return tool === "brush" ? 10 : tool === "eraser" ? 28 : 4; }

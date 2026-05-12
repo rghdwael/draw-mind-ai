@@ -6,6 +6,7 @@ import React, { useRef, useState } from "react";
 import {
   Animated,
   KeyboardAvoidingView,
+  LayoutChangeEvent,
   Modal,
   Platform,
   ScrollView,
@@ -178,9 +179,19 @@ export default function DrawingCanvas() {
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
 
   // Drawing state — managed here, rendered by DrawingArea
-  const [paths, setPaths]         = useState<DrawPath[]>([]);
+  const [paths, setPaths]             = useState<DrawPath[]>([]);
   const [activeTool, setActiveTool]   = useState<Tool>("pencil");
   const [selectedColor, setSelectedColor] = useState("#4A3070");
+  const [canvasSize, setCanvasSize]   = useState({ w: 0, h: 0 });
+
+  function handleCanvasLayout(e: LayoutChangeEvent) {
+    const { width, height } = e.nativeEvent.layout;
+    setCanvasSize(prev =>
+      prev.w === Math.round(width) && prev.h === Math.round(height)
+        ? prev
+        : { w: Math.round(width), h: Math.round(height) }
+    );
+  }
 
   // Parent notes
   const [description, setDescription] = useState("");
@@ -282,12 +293,14 @@ export default function DrawingCanvas() {
 
       {/* ── Canvas ── */}
       <View style={styles.canvasWrap}>
-        <View style={styles.canvas}>
+        <View style={styles.canvas} onLayout={handleCanvasLayout}>
           <DrawingArea
             paths={paths}
             activeTool={activeTool}
             selectedColor={selectedColor}
             onStrokeComplete={handleStrokeComplete}
+            canvasWidth={canvasSize.w}
+            canvasHeight={canvasSize.h}
           />
           {!hasPaths && (
             <View style={styles.canvasHint} pointerEvents="none">
