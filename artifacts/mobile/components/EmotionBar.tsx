@@ -22,7 +22,7 @@ export function EmotionBar({ label, percentage, color, delay = 0 }: Props) {
 
   const widthInterpolated = animValue.interpolate({
     inputRange: [0, 1],
-    outputRange: ["0%", "100%"],
+    outputRange: ["0%", `${percentage}%`],
   });
 
   return (
@@ -37,10 +37,7 @@ export function EmotionBar({ label, percentage, color, delay = 0 }: Props) {
             styles.fill,
             {
               backgroundColor: color,
-              width: widthInterpolated.interpolate({
-                inputRange: ["0%", "100%"],
-                outputRange: [`${0}%`, `${percentage}%`],
-              }),
+              width: widthInterpolated,
             },
           ]}
         />
