@@ -118,7 +118,9 @@ export default function LoginScreen() {
       }
     } catch (err: unknown) {
       const code = (err as { code?: string })?.code ?? "";
-      setAuthError(getAuthErrorMessage(code));
+      const msg = (err as { message?: string })?.message ?? "";
+      if (__DEV__) console.warn("[Auth error]", code, msg);
+      setAuthError(getAuthErrorMessage(code, msg));
     } finally {
       setLoadingEmail(false);
     }
@@ -148,8 +150,10 @@ export default function LoginScreen() {
       router.replace("/(tabs)");
     } catch (err: unknown) {
       const code = (err as { code?: string })?.code ?? "";
+      const msg = (err as { message?: string })?.message ?? "";
+      if (__DEV__) console.warn("[Google Auth error]", code, msg);
       if (code !== "auth/popup-closed-by-user" && code !== "auth/cancelled-popup-request") {
-        setAuthError(getAuthErrorMessage(code));
+        setAuthError(getAuthErrorMessage(code, msg));
       }
     } finally {
       setLoadingGoogle(false);
@@ -181,8 +185,10 @@ export default function LoginScreen() {
       router.replace("/(tabs)");
     } catch (err: unknown) {
       const code = (err as { code?: string })?.code ?? "";
+      const msg = (err as { message?: string })?.message ?? "";
+      if (__DEV__) console.warn("[Apple Auth error]", code, msg);
       if (code !== "auth/popup-closed-by-user" && code !== "auth/cancelled-popup-request") {
-        setAuthError(getAuthErrorMessage(code));
+        setAuthError(getAuthErrorMessage(code, msg));
       }
     } finally {
       setLoadingApple(false);
