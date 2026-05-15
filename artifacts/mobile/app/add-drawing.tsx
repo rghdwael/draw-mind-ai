@@ -188,7 +188,7 @@ export default function AddDrawingScreen() {
     ).start();
 
     // Simulate AI processing
-    await new Promise((res) => setTimeout(res, 2000));
+    await new Promise((res) => setTimeout(res, 800));
 
     const analysis = generateMockAnalysis(description || "neutral drawing");
 

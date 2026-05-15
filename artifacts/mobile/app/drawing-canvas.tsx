@@ -244,7 +244,7 @@ export default function DrawingCanvas() {
     const imageUri = getSnapshotRef.current?.() ?? null;
 
     // Simulate AI processing time
-    await new Promise((r) => setTimeout(r, 2400));
+    await new Promise((r) => setTimeout(r, 800));
 
     const analysis  = generateMockAnalysis(description, paths.length);
     const pathsJson = JSON.stringify({ paths, imageUri });
