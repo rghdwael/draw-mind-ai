@@ -34,24 +34,34 @@ const EMOTION_COLORS: Record<string, string> = {
 
 const SUMMARIES: Record<string, string[]> = {
   Happy: [
-    "This drawing suggests emotional comfort, creativity, and positive social feelings. The child appears to be in a secure and nurturing environment.",
-    "Vibrant and expressive, this drawing reflects a child who is thriving emotionally and feels safe to express joy freely.",
+    "Happy (High confidence) — calm and positive emotions detected.",
+    "Joyful and expressive — strong positive energy in this drawing.",
+    "Happy and secure — child appears emotionally balanced and thriving.",
+    "Vibrant positivity detected — excellent emotional wellbeing indicators.",
   ],
   Sad: [
-    "This drawing indicates some underlying sadness. The child may be processing a recent emotional experience. Overall creative expression remains healthy.",
-    "The drawing shows signs of emotional introspection. The child is communicating feelings of sadness in a healthy, expressive way through art.",
+    "Slight sadness detected but overall stable.",
+    "Mild sadness present — child is processing emotions through art.",
+    "Subdued mood noted — some gentle warmth and support may help.",
+    "Sad undertones detected — overall creative expression remains healthy.",
   ],
   Angry: [
-    "The drawing reveals feelings of frustration and anger. This is healthy emotional expression. The child is processing big feelings through art.",
-    "Bold strokes and intense color choices suggest the child is working through feelings of frustration or anger. Art is a positive outlet for these emotions.",
+    "Frustration detected — healthy expression through bold strokes.",
+    "Elevated emotional intensity — art is a positive outlet here.",
+    "Anger patterns noted — child is processing big feelings creatively.",
+    "Strong emotional energy present — frustration expressed through drawing.",
   ],
   Anxiety: [
-    "There are indicators of mild anxiety in this drawing. The child may be experiencing some worry or uncertainty about their environment.",
-    "The drawing suggests some anxious feelings. Providing reassurance and open conversation can help the child process these emotions.",
+    "Mild anxiety detected — consistent routines will provide comfort.",
+    "Slight nervousness noted — reassurance and routine will help.",
+    "Anxious patterns present — a calm, predictable environment is recommended.",
+    "Worry signals detected — open dialogue and routine can support.",
   ],
   Fear: [
-    "This drawing shows signs of fearfulness. The child may be working through something that feels overwhelming or scary to them.",
-    "The drawing reflects some fearful emotions. Creating a safe, calm environment and encouraging open dialogue will help the child feel supported.",
+    "Fear indicators present — safe environment and dialogue recommended.",
+    "Fearful patterns detected — gentle support and reassurance needed.",
+    "Slight fear noted — child working through overwhelming feelings.",
+    "Fear signals present — move at the child's pace with extra support.",
   ],
 };
 
@@ -187,8 +197,8 @@ export default function AddDrawingScreen() {
       ])
     ).start();
 
-    // Simulate AI processing
-    await new Promise((res) => setTimeout(res, 800));
+    // Fast local analysis — no network call needed
+    await new Promise((res) => setTimeout(res, 300));
 
     const analysis = generateMockAnalysis(description || "neutral drawing");
 
