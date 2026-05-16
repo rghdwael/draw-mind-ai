@@ -48,7 +48,7 @@ export default function AboutAppScreen() {
         >
           <View style={styles.mascotCircle}>
             <Image
-              source={require("@/assets/images/whale-paintbrush.png")}
+              source={require("@/assets/images/mascot.png")}
               style={styles.mascot}
               resizeMode="contain"
             />

@@ -1,3 +1,8 @@
 uploads = []
-generated = []
 outputs = []
+
+[[generated]]
+id = "k--loOIPpItubc1JfIMJb"
+uri = "file://artifacts/mobile/assets/images/mascot.png"
+type = "image"
+title = "generated_image"

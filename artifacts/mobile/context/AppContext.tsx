@@ -1,5 +1,4 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { onAuthStateChanged, signOut, User } from "firebase/auth";
 import React, {
   createContext,
   useCallback,
@@ -7,12 +6,6 @@ import React, {
   useEffect,
   useState,
 } from "react";
-
-import { auth, isFirebaseConfigured } from "@/lib/firebase";
-import {
-  loadDrawingsFromFirestore,
-  saveDrawingToFirestore,
-} from "@/lib/firestore";
 
 export interface Child {
   id: string;
@@ -37,7 +30,6 @@ export interface Drawing {
   childId: string;
   date: string;
   pathsJson: string;
-  imageUri?: string;
   mainEmotion: string;
   confidence: number;
   emotions: EmotionScore[];
@@ -230,7 +222,6 @@ const STORAGE_KEY_DRAWINGS = "@drawmind_drawings";
 
 export function AppProvider({ children: reactChildren }: { children: React.ReactNode }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
   const [userName, setUserName] = useState("Anna");
   const [userEmail, setUserEmail] = useState("");
   const [userPhone, setUserPhone] = useState("");
@@ -239,84 +230,48 @@ export function AppProvider({ children: reactChildren }: { children: React.React
   const [drawings, setDrawings] = useState<Drawing[]>(MOCK_DRAWINGS);
 
   useEffect(() => {
-    if (isFirebaseConfigured) {
-      const unsubscribe = onAuthStateChanged(auth, async (user: User | null) => {
-        if (user) {
-          setIsLoggedIn(true);
-          setUserId(user.uid);
-          setUserName(
-            user.displayName || user.email?.split("@")[0] || "Parent"
-          );
-          setUserEmail(user.email ?? "");
-          // Load drawings saved under this parent's account
-          try {
-            const firestoreDrawings = await loadDrawingsFromFirestore(user.uid);
-            if (firestoreDrawings.length > 0) {
-              setDrawings(firestoreDrawings);
-            }
-          } catch {
-            // Firestore unavailable — local/mock data remains
-          }
-        } else {
-          setIsLoggedIn(false);
-          setUserId(null);
-          setUserName("Anna");
-          setUserEmail("");
+    (async () => {
+      try {
+        const [authData, childrenData, drawingsData] = await Promise.all([
+          AsyncStorage.getItem(STORAGE_KEY_AUTH),
+          AsyncStorage.getItem(STORAGE_KEY_CHILDREN),
+          AsyncStorage.getItem(STORAGE_KEY_DRAWINGS),
+        ]);
+        if (authData) {
+          const parsed = JSON.parse(authData);
+          setIsLoggedIn(parsed.isLoggedIn);
+          setUserName(parsed.userName || "Anna");
+          setUserEmail(parsed.userEmail || "");
+          setUserPhone(parsed.userPhone || "");
+          setUserRelationship(parsed.userRelationship || "");
         }
-      });
-      return unsubscribe;
-    } else {
-      (async () => {
-        try {
-          const [authData, childrenData, drawingsData] = await Promise.all([
-            AsyncStorage.getItem(STORAGE_KEY_AUTH),
-            AsyncStorage.getItem(STORAGE_KEY_CHILDREN),
-            AsyncStorage.getItem(STORAGE_KEY_DRAWINGS),
-          ]);
-          if (authData) {
-            const parsed = JSON.parse(authData);
-            setIsLoggedIn(parsed.isLoggedIn);
-            setUserName(parsed.userName || "Anna");
-            setUserEmail(parsed.userEmail || "");
-            setUserPhone(parsed.userPhone || "");
-            setUserRelationship(parsed.userRelationship || "");
-          }
-          if (childrenData) {
-            const parsed = JSON.parse(childrenData);
-            if (parsed.length > 0) setChildren(parsed);
-          }
-          if (drawingsData) {
-            const parsed = JSON.parse(drawingsData);
-            if (parsed.length > 0) setDrawings(parsed);
-          }
-        } catch {}
-      })();
-    }
+        if (childrenData) {
+          const parsed = JSON.parse(childrenData);
+          if (parsed.length > 0) setChildren(parsed);
+        }
+        if (drawingsData) {
+          const parsed = JSON.parse(drawingsData);
+          if (parsed.length > 0) setDrawings(parsed);
+        }
+      } catch {}
+    })();
   }, []);
 
   const login = useCallback(async (email: string, name: string) => {
-    if (!isFirebaseConfigured) {
-      const data = { isLoggedIn: true, userName: name, userEmail: email };
-      await AsyncStorage.setItem(STORAGE_KEY_AUTH, JSON.stringify(data));
-    }
+    const data = { isLoggedIn: true, userName: name, userEmail: email };
+    await AsyncStorage.setItem(STORAGE_KEY_AUTH, JSON.stringify(data));
     setIsLoggedIn(true);
     setUserName(name);
     setUserEmail(email);
   }, []);
 
   const logout = useCallback(async () => {
-    if (isFirebaseConfigured) {
-      try {
-        await signOut(auth);
-      } catch {}
-    }
     await Promise.all([
       AsyncStorage.setItem(STORAGE_KEY_AUTH, JSON.stringify({ isLoggedIn: false })),
       AsyncStorage.removeItem(STORAGE_KEY_CHILDREN),
       AsyncStorage.removeItem(STORAGE_KEY_DRAWINGS),
     ]);
     setIsLoggedIn(false);
-    setUserId(null);
     setUserName("Anna");
     setUserEmail("");
     setUserPhone("");
@@ -327,13 +282,7 @@ export function AppProvider({ children: reactChildren }: { children: React.React
 
   const updateUserProfile = useCallback(
     async (name: string, email: string, phone: string, relationship: string) => {
-      const data = {
-        isLoggedIn: true,
-        userName: name,
-        userEmail: email,
-        userPhone: phone,
-        userRelationship: relationship,
-      };
+      const data = { isLoggedIn: true, userName: name, userEmail: email, userPhone: phone, userRelationship: relationship };
       await AsyncStorage.setItem(STORAGE_KEY_AUTH, JSON.stringify(data));
       setUserName(name);
       setUserEmail(email);
@@ -354,7 +303,10 @@ export function AppProvider({ children: reactChildren }: { children: React.React
       };
       const updated = [...children, newChild];
       setChildren(updated);
-      await AsyncStorage.setItem(STORAGE_KEY_CHILDREN, JSON.stringify(updated));
+      await AsyncStorage.setItem(
+        STORAGE_KEY_CHILDREN,
+        JSON.stringify(updated)
+      );
     },
     [children]
   );
@@ -379,19 +331,13 @@ export function AppProvider({ children: reactChildren }: { children: React.React
       };
       const updated = [newDrawing, ...drawings];
       setDrawings(updated);
-      // Persist locally (offline-first)
-      await AsyncStorage.setItem(STORAGE_KEY_DRAWINGS, JSON.stringify(updated));
-      // Sync to Firestore under the logged-in parent's account
-      if (isFirebaseConfigured && userId) {
-        try {
-          await saveDrawingToFirestore(userId, newDrawing);
-        } catch {
-          // Firestore write failed silently — local copy is still saved
-        }
-      }
+      await AsyncStorage.setItem(
+        STORAGE_KEY_DRAWINGS,
+        JSON.stringify(updated)
+      );
       return newDrawing.id;
     },
-    [drawings, userId]
+    [drawings]
   );
 
   const getChildDrawings = useCallback(

@@ -46,39 +46,13 @@ function generateMockAnalysis(description: string, pathCount: number) {
     color: EMOTION_COLORS[name],
   })).sort((a, b) => b.percentage - a.percentage);
 
-  const CANVAS_SUMMARIES: Record<string, string[]> = {
-    Happy:   [
-      "Happy (High confidence) — calm and positive emotions detected.",
-      "Joyful and expressive — strong positive energy in this drawing.",
-      "Happy and secure — child appears emotionally balanced and thriving.",
-      "Vibrant positivity detected — excellent emotional wellbeing indicators.",
-    ],
-    Sad:     [
-      "Slight sadness detected but overall stable.",
-      "Mild sadness present — child is processing emotions through art.",
-      "Subdued mood noted — some gentle warmth and support may help.",
-      "Sad undertones detected — overall creative expression remains healthy.",
-    ],
-    Angry:   [
-      "Frustration detected — healthy expression through bold strokes.",
-      "Elevated emotional intensity — art is a positive outlet here.",
-      "Anger patterns noted — child is processing big feelings creatively.",
-      "Strong emotional energy present — frustration expressed through drawing.",
-    ],
-    Anxiety: [
-      "Mild anxiety detected — consistent routines will provide comfort.",
-      "Slight nervousness noted — reassurance and routine will help.",
-      "Anxious patterns present — a calm, predictable environment is recommended.",
-      "Worry signals detected — open dialogue and routine can support.",
-    ],
-    Fear:    [
-      "Fear indicators present — safe environment and dialogue recommended.",
-      "Fearful patterns detected — gentle support and reassurance needed.",
-      "Slight fear noted — child working through overwhelming feelings.",
-      "Fear signals present — move at the child's pace with extra support.",
-    ],
+  const summaries: Record<string, string> = {
+    Happy:   "This drawing suggests emotional comfort, creativity, and positive social feelings. The child appears to be in a secure and nurturing environment.",
+    Sad:     "This drawing indicates underlying sadness. The child may be processing a recent emotional experience through creative expression.",
+    Angry:   "Bold strokes and intense choices suggest the child is working through feelings of frustration. Art is a healthy outlet for these emotions.",
+    Anxiety: "There are indicators of mild anxiety in this drawing. The child may be experiencing some worry or uncertainty about their environment.",
+    Fear:    "The drawing reflects some fearful emotions. A calm, safe environment and open dialogue will help the child feel supported.",
   };
-  const summary = CANVAS_SUMMARIES[emotion][seed % CANVAS_SUMMARIES[emotion].length];
 
   const states: Record<string, string> = {
     Happy:   "Positive and stable emotional baseline with high energy",
@@ -100,7 +74,7 @@ function generateMockAnalysis(description: string, pathCount: number) {
     mainEmotion:      emotion,
     confidence,
     emotions,
-    summary,
+    summary:          summaries[emotion],
     emotionalState:   states[emotion],
     socialIndicators: confidence > 80 ? "Strong peer connections, feels included and valued" : "Some social withdrawal noted; encourage group activities",
     stressSignals:    confidence > 75 ? "Minimal stress indicators present" : "Moderate stress indicators — monitor closely",
@@ -269,8 +243,8 @@ export default function DrawingCanvas() {
     // Capture canvas snapshot before async work (web only; native gets null)
     const imageUri = getSnapshotRef.current?.() ?? null;
 
-    // Fast local analysis — no network call needed
-    await new Promise((r) => setTimeout(r, 300));
+    // Simulate AI processing time
+    await new Promise((r) => setTimeout(r, 2400));
 
     const analysis  = generateMockAnalysis(description, paths.length);
     const pathsJson = JSON.stringify({ paths, imageUri });
@@ -278,7 +252,6 @@ export default function DrawingCanvas() {
     const drawingId = await addDrawing({
       childId: childId ?? "",
       pathsJson,
-      imageUri: imageUri ?? undefined,
       ...analysis,
     });
 
