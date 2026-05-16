@@ -6,6 +6,12 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import {
+  registerUser,
+  signInUser,
+  socialLogin,
+  type AuthResult,
+} from "@/utils/authStorage";
 
 export interface Child {
   id: string;
@@ -51,6 +57,9 @@ interface AppContextType {
   children: Child[];
   drawings: Drawing[];
   login: (email: string, name: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<AuthResult>;
+  register: (email: string, password: string, name: string) => Promise<AuthResult>;
+  loginWithSocial: (email: string, name: string, provider: "google" | "apple") => Promise<AuthResult>;
   logout: () => Promise<void>;
   updateUserProfile: (name: string, email: string, phone: string, relationship: string) => Promise<void>;
   addChild: (child: Omit<Child, "id">) => Promise<void>;
@@ -257,12 +266,50 @@ export function AppProvider({ children: reactChildren }: { children: React.React
     })();
   }, []);
 
-  const login = useCallback(async (email: string, name: string) => {
-    const data = { isLoggedIn: true, userName: name, userEmail: email };
+  const _persistAuth = async (name: string, email: string) => {
+    const data = {
+      isLoggedIn: true,
+      userName: name,
+      userEmail: email,
+      userPhone,
+      userRelationship,
+    };
     await AsyncStorage.setItem(STORAGE_KEY_AUTH, JSON.stringify(data));
     setIsLoggedIn(true);
     setUserName(name);
     setUserEmail(email);
+  };
+
+  const login = useCallback(async (email: string, name: string) => {
+    await _persistAuth(name, email);
+  }, []);
+
+  const signIn = useCallback(async (email: string, password: string): Promise<AuthResult> => {
+    const result = await signInUser(email, password);
+    if (result.success && result.user) {
+      await _persistAuth(result.user.name, result.user.email);
+    }
+    return result;
+  }, []);
+
+  const register = useCallback(async (email: string, password: string, name: string): Promise<AuthResult> => {
+    const result = await registerUser(email, password, name);
+    if (result.success && result.user) {
+      await _persistAuth(result.user.name, result.user.email);
+    }
+    return result;
+  }, []);
+
+  const loginWithSocial = useCallback(async (
+    email: string,
+    name: string,
+    provider: "google" | "apple"
+  ): Promise<AuthResult> => {
+    const result = await socialLogin(email, name, provider);
+    if (result.success && result.user) {
+      await _persistAuth(result.user.name, result.user.email);
+    }
+    return result;
   }, []);
 
   const logout = useCallback(async () => {
@@ -282,7 +329,13 @@ export function AppProvider({ children: reactChildren }: { children: React.React
 
   const updateUserProfile = useCallback(
     async (name: string, email: string, phone: string, relationship: string) => {
-      const data = { isLoggedIn: true, userName: name, userEmail: email, userPhone: phone, userRelationship: relationship };
+      const data = {
+        isLoggedIn: true,
+        userName: name,
+        userEmail: email,
+        userPhone: phone,
+        userRelationship: relationship,
+      };
       await AsyncStorage.setItem(STORAGE_KEY_AUTH, JSON.stringify(data));
       setUserName(name);
       setUserEmail(email);
@@ -298,15 +351,12 @@ export function AppProvider({ children: reactChildren }: { children: React.React
         ...child,
         id: `child-${Date.now()}${Math.random().toString(36).substr(2, 5)}`,
         avatarColor:
-          AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)],
+          child.avatarColor || AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)],
         initials: child.name.slice(0, 2).toUpperCase(),
       };
       const updated = [...children, newChild];
       setChildren(updated);
-      await AsyncStorage.setItem(
-        STORAGE_KEY_CHILDREN,
-        JSON.stringify(updated)
-      );
+      await AsyncStorage.setItem(STORAGE_KEY_CHILDREN, JSON.stringify(updated));
     },
     [children]
   );
@@ -331,10 +381,7 @@ export function AppProvider({ children: reactChildren }: { children: React.React
       };
       const updated = [newDrawing, ...drawings];
       setDrawings(updated);
-      await AsyncStorage.setItem(
-        STORAGE_KEY_DRAWINGS,
-        JSON.stringify(updated)
-      );
+      await AsyncStorage.setItem(STORAGE_KEY_DRAWINGS, JSON.stringify(updated));
       return newDrawing.id;
     },
     [drawings]
@@ -369,6 +416,9 @@ export function AppProvider({ children: reactChildren }: { children: React.React
         children,
         drawings,
         login,
+        signIn,
+        register,
+        loginWithSocial,
         logout,
         updateUserProfile,
         addChild,

@@ -54,5 +54,10 @@
     "typescript": "~5.9.2",
     "zod": "catalog:",
     "zod-validation-error": "^3.4.0"
+  },
+  "dependencies": {
+    "expo-apple-authentication": "^8.0.8",
+    "expo-auth-session": "^7.0.11",
+    "expo-crypto": "^15.0.9"
   }
 }
