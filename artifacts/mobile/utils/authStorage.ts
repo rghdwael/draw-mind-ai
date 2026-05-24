@@ -1,16 +1,9 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as Crypto from "expo-crypto";
-
-const USERS_KEY = "@drawmind_registered_users";
+// ── Server Configuration ──────────────────────────────────────────────────────
+const API_URL = "http://localhost:5000"; // Change to your IP if using a physical phone
 
 export interface StoredUser {
-  id: string;
-  email: string;
   name: string;
-  passwordHash: string;
-  salt: string;
-  provider: "email" | "google" | "apple";
-  createdAt: string;
+  email: string;
 }
 
 export interface AuthResult {
@@ -19,7 +12,7 @@ export interface AuthResult {
   user?: StoredUser;
 }
 
-// ── Validation helpers ────────────────────────────────────────────────────────
+// ── Validation helpers (Kept exactly the same for great UX!) ──────────────
 
 export function validateEmail(email: string): string | null {
   if (!email.trim()) return "Email is required.";
@@ -40,33 +33,7 @@ export function validateName(name: string): string | null {
   return null;
 }
 
-// ── Storage helpers ───────────────────────────────────────────────────────────
-
-async function getUsers(): Promise<StoredUser[]> {
-  try {
-    const raw = await AsyncStorage.getItem(USERS_KEY);
-    return raw ? (JSON.parse(raw) as StoredUser[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-async function saveUsers(users: StoredUser[]): Promise<void> {
-  await AsyncStorage.setItem(USERS_KEY, JSON.stringify(users));
-}
-
-function generateId(): string {
-  return Date.now().toString() + Math.random().toString(36).substr(2, 9);
-}
-
-async function hashPassword(password: string, salt: string): Promise<string> {
-  return await Crypto.digestStringAsync(
-    Crypto.CryptoDigestAlgorithm.SHA256,
-    salt + password
-  );
-}
-
-// ── Public API ────────────────────────────────────────────────────────────────
+// ── Public API (Now talking to your FastAPI Python Kitchen!) ────────────────
 
 export async function registerUser(
   email: string,
@@ -80,32 +47,29 @@ export async function registerUser(
   const nameErr = validateName(name);
   if (nameErr) return { success: false, error: nameErr };
 
-  const users = await getUsers();
-  const exists = users.find(
-    (u) => u.email.toLowerCase() === email.trim().toLowerCase()
-  );
-  if (exists) {
-    return {
-      success: false,
-      error: "An account with this email already exists.",
-    };
+  try {
+    const response = await fetch(`${API_URL}/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        password: password,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      // This catches the "Email already registered" error from FastAPI
+      return { success: false, error: data.detail || "Registration failed." };
+    }
+
+    return { success: true, user: data.user };
+  } catch (error) {
+    console.error("Registration Error:", error);
+    return { success: false, error: "Network error. Is the FastAPI server running?" };
   }
-
-  const salt = generateId();
-  const passwordHash = await hashPassword(password, salt);
-
-  const newUser: StoredUser = {
-    id: generateId(),
-    email: email.trim().toLowerCase(),
-    name: name.trim(),
-    passwordHash,
-    salt,
-    provider: "email",
-    createdAt: new Date().toISOString(),
-  };
-
-  await saveUsers([...users, newUser]);
-  return { success: true, user: newUser };
 }
 
 export async function signInUser(
@@ -116,48 +80,42 @@ export async function signInUser(
   if (emailErr) return { success: false, error: emailErr };
   if (!password) return { success: false, error: "Password is required." };
 
-  const users = await getUsers();
-  const user = users.find(
-    (u) => u.email === email.trim().toLowerCase()
-  );
+  try {
+    const response = await fetch(`${API_URL}/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: email.trim().toLowerCase(),
+        password: password,
+      }),
+    });
 
-  if (!user || user.provider !== "email") {
-    return { success: false, error: "No account found with this email." };
+    const data = await response.json();
+
+    if (!response.ok) {
+      // This catches the "Invalid email or password" error from FastAPI
+      return { success: false, error: data.detail || "Login failed." };
+    }
+
+    return { success: true, user: data.user };
+  } catch (error) {
+    console.error("Login Error:", error);
+    return { success: false, error: "Network error. Is the FastAPI server running?" };
   }
-
-  const hash = await hashPassword(password, user.salt);
-  if (hash !== user.passwordHash) {
-    return { success: false, error: "Incorrect password. Please try again." };
-  }
-
-  return { success: true, user };
 }
+
+// ── Stubbed Social Logins (To prevent app crashes if clicked) ───────────────
 
 export async function socialLogin(
   email: string,
   name: string,
   provider: "google" | "apple"
 ): Promise<AuthResult> {
-  const users = await getUsers();
-  let user = users.find((u) => u.email === email.toLowerCase());
-
-  if (!user) {
-    user = {
-      id: generateId(),
-      email: email.toLowerCase(),
-      name,
-      passwordHash: "",
-      salt: "",
-      provider,
-      createdAt: new Date().toISOString(),
-    };
-    await saveUsers([...users, user]);
-  }
-
-  return { success: true, user };
+  // Can be wired up to FastAPI later! 
+  return { success: false, error: "Social login is under construction." };
 }
 
 export async function checkEmailExists(email: string): Promise<boolean> {
-  const users = await getUsers();
-  return users.some((u) => u.email === email.trim().toLowerCase());
+  // Can be wired up later if you add a specific /check-email route in Python
+  return false; 
 }

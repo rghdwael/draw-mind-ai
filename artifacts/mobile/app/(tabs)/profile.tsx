@@ -17,7 +17,7 @@ import { GlassCard } from "@/components/GlassCard";
 import { useApp } from "@/context/AppContext";
 
 const SETTINGS = [
-  { icon: "person-outline",             label: "Edit Profile",       color: "#A78BFA", route: "/edit-profile" },
+  { icon: "person-outline",             label: "Edit Profile",      color: "#A78BFA", route: "/edit-profile" },
   { icon: "people-outline",             label: "Update Child Info",  color: "#B89CFF", route: "/choose-child?mode=edit" },
   { icon: "chatbubble-outline",         label: "Support & Feedback", color: "#48CAE4", route: "/support-feedback" },
   { icon: "language-outline",           label: "Language",           color: "#90BE6D", route: "/language" },
@@ -29,31 +29,48 @@ const SETTINGS = [
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
-  const { userName, userEmail, children, drawings, logout } = useApp();
+  const { userName, userEmail, children, drawings, logout } = useApp() || { userName: "Parent", userEmail: "", children: [], drawings: [], logout: async () => {} };
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
   const [showSignOutModal, setShowSignOutModal] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
-  const happyCount = drawings.filter((d) => d.mainEmotion.toLowerCase().includes("happy")).length;
-  const happyPct   = drawings.length > 0 ? Math.round((happyCount / drawings.length) * 100) : 0;
+  // تأمين الفلترة ضد الحقول الفارغة لعدم انهيار الصفحة ودعم الكلمات (Happy / Happiness) الراجعة من Neon
+  const safeDrawings = drawings || [];
+  const happyCount = safeDrawings.filter((d) => {
+    const emotion = d?.mainEmotion ? String(d.mainEmotion).toLowerCase() : "";
+    return emotion.includes("happ");
+  }).length;
+  
+  const happyPct = safeDrawings.length > 0 ? Math.round((happyCount / safeDrawings.length) * 100) : 0;
 
   function handleSettingPress(route: string) {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (Platform.OS !== "web") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    }
     router.push(route as any);
   }
 
   function handleLogoutPress() {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (Platform.OS !== "web") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    }
     setShowSignOutModal(true);
   }
 
   async function confirmSignOut() {
     setSigningOut(true);
-    await logout();
-    setShowSignOutModal(false);
-    setSigningOut(false);
-    router.replace("/welcome");
+    try {
+      if (logout) {
+        await logout();
+      }
+      setShowSignOutModal(false);
+      router.replace("/welcome");
+    } catch (error) {
+      console.error("Error signing out:", error);
+    } finally {
+      setSigningOut(false);
+    }
   }
 
   return (
@@ -70,9 +87,9 @@ export default function ProfileScreen() {
           style={[styles.headerBg, { paddingTop: topPad + 20 }]}
         >
           <View style={styles.avatarLarge}>
-            <Text style={styles.avatarLargeText}>{userName.slice(0, 1).toUpperCase()}</Text>
+            <Text style={styles.avatarLargeText}>{userName ? userName.slice(0, 1).toUpperCase() : "P"}</Text>
           </View>
-          <Text style={styles.profileName}>{userName}</Text>
+          <Text style={styles.profileName}>{userName || "Parent"}</Text>
           <Text style={styles.profileEmail}>{userEmail || "parent@example.com"}</Text>
         </LinearGradient>
 
@@ -80,11 +97,11 @@ export default function ProfileScreen() {
           {/* Stats */}
           <View style={styles.statsRow}>
             <GlassCard style={styles.statCard} padding={16}>
-              <Text style={styles.statNum}>{children.length}</Text>
+              <Text style={styles.statNum}>{children ? children.length : 0}</Text>
               <Text style={styles.statLabel}>Children</Text>
             </GlassCard>
             <GlassCard style={styles.statCard} padding={16}>
-              <Text style={styles.statNum}>{drawings.length}</Text>
+              <Text style={styles.statNum}>{safeDrawings.length}</Text>
               <Text style={styles.statLabel}>Drawings</Text>
             </GlassCard>
             <GlassCard style={styles.statCard} padding={16}>
@@ -150,7 +167,6 @@ export default function ProfileScreen() {
       >
         <View style={styles.overlay}>
           <View style={styles.modalCard}>
-            {/* Icon */}
             <View style={styles.modalIconWrap}>
               <Ionicons name="log-out-outline" size={30} color="#FF6B6B" />
             </View>
@@ -195,30 +211,24 @@ const styles = StyleSheet.create({
   avatarLargeText: { fontSize: 36, fontWeight: "700", color: "#4A3070", fontFamily: "Inter_700Bold" },
   profileName: { fontSize: 22, fontWeight: "800", color: "#4A3070", fontFamily: "Inter_700Bold", marginBottom: 4 },
   profileEmail: { fontSize: 14, color: "rgba(74,48,112,0.75)", fontFamily: "Inter_400Regular" },
-
   body: { marginTop: -36, paddingHorizontal: 20, gap: 16 },
-
   statsRow: { flexDirection: "row", gap: 12 },
   statCard: { flex: 1, alignItems: "center" },
   statNum: { fontSize: 22, fontWeight: "800", color: "#A78BFA", fontFamily: "Inter_700Bold" },
   statLabel: { fontSize: 11, color: "#A090B8", fontFamily: "Inter_500Medium", marginTop: 2 },
-
   premiumBanner: { borderRadius: 22, paddingVertical: 16, paddingHorizontal: 20, flexDirection: "row", justifyContent: "space-between", alignItems: "center", shadowColor: "#C4A8F5", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 14, elevation: 8 },
   premiumLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
   premiumTitle: { fontSize: 15, fontWeight: "700", color: "#fff", fontFamily: "Inter_700Bold" },
   premiumSub: { fontSize: 12, color: "rgba(255,255,255,0.8)", fontFamily: "Inter_400Regular" },
   premiumBtn: { backgroundColor: "rgba(255,255,255,0.25)", borderRadius: 12, paddingHorizontal: 16, paddingVertical: 8, borderWidth: 1, borderColor: "rgba(255,255,255,0.4)" },
   premiumBtnText: { fontSize: 13, fontWeight: "700", color: "#fff", fontFamily: "Inter_700Bold" },
-
   settingsList: { borderRadius: 24, overflow: "hidden" },
   settingItem: { flexDirection: "row", alignItems: "center", paddingHorizontal: 18, paddingVertical: 15, gap: 14 },
   settingItemBorder: { borderBottomWidth: 1, borderBottomColor: "#F0E8FF" },
   settingIcon: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   settingLabel: { flex: 1, fontSize: 15, color: "#4A3070", fontFamily: "Inter_500Medium", fontWeight: "500" },
-
   logoutBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "#FFFFFF", borderRadius: 20, paddingVertical: 16, shadowColor: "#FF6B6B", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 10, elevation: 3, marginBottom: 8 },
   logoutText: { fontSize: 15, fontWeight: "700", color: "#FF6B6B", fontFamily: "Inter_700Bold" },
-
   overlay: { flex: 1, backgroundColor: "rgba(50,30,100,0.4)", justifyContent: "center", alignItems: "center", paddingHorizontal: 28 },
   modalCard: { width: "100%", backgroundColor: "#FDFAFF", borderRadius: 28, padding: 28, alignItems: "center", shadowColor: "#7B5CE5", shadowOffset: { width: 0, height: 16 }, shadowOpacity: 0.18, shadowRadius: 32, elevation: 20 },
   modalIconWrap: { width: 64, height: 64, borderRadius: 22, backgroundColor: "#FFF0F0", alignItems: "center", justifyContent: "center", marginBottom: 16 },

@@ -1,17 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
-import {
-  registerUser,
-  signInUser,
-  socialLogin,
-  type AuthResult,
-} from "@/utils/authStorage";
+import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { registerUser, signInUser, socialLogin, type AuthResult } from "@/utils/authStorage";
 
 export interface Child {
   id: string;
@@ -45,6 +34,7 @@ export interface Drawing {
   stressSignals: string;
   creativityLevel: number;
   confidenceLevel: number;
+  imagePath?: string;
   recommendations: string[];
 }
 
@@ -56,6 +46,7 @@ interface AppContextType {
   userRelationship: string;
   children: Child[];
   drawings: Drawing[];
+  fetchDrawings: (childId: string) => Promise<void>;
   login: (email: string, name: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<AuthResult>;
   register: (email: string, password: string, name: string) => Promise<AuthResult>;
@@ -66,177 +57,27 @@ interface AppContextType {
   updateChild: (childId: string, updates: Omit<Child, "id">) => Promise<void>;
   addDrawing: (drawing: Omit<Drawing, "id" | "date">) => Promise<string>;
   getChildDrawings: (childId: string) => Drawing[];
+  deleteDrawing?: (drawingId: string, childId: string) => Promise<boolean>;
   getChildEmotionSummary: (childId: string) => string;
 }
 
-const AppContext = createContext<AppContextType | null>(null);
+// إنشاء الـ Context وتصديره بشكل مسمى
+export const AppContext = createContext<AppContextType | null>(null);
 
-const AVATAR_COLORS = [
-  "#6C4DFF",
-  "#FF6B9D",
-  "#48CAE4",
-  "#F8961E",
-  "#90BE6D",
-  "#F3722C",
-  "#577590",
-];
-
-const MOCK_CHILDREN: Child[] = [
-  {
-    id: "child-rud",
-    name: "Rud",
-    age: 7,
-    gender: "Male",
-    favoriteActivities: "Drawing, Building blocks",
-    emotionalNotes: "Generally happy, sometimes anxious about school",
-    parentNotes: "Very creative child",
-    avatarColor: "#6C4DFF",
-    initials: "RD",
-  },
-  {
-    id: "child-emmi",
-    name: "Emmi",
-    age: 5,
-    gender: "Female",
-    favoriteActivities: "Painting, Dancing",
-    emotionalNotes: "Expressive and joyful",
-    parentNotes: "Loves art activities",
-    avatarColor: "#FF6B9D",
-    initials: "EM",
-  },
-  {
-    id: "child-alex",
-    name: "Alex",
-    age: 9,
-    gender: "Male",
-    favoriteActivities: "Reading, Lego",
-    emotionalNotes: "Thoughtful and introspective",
-    parentNotes: "Very mature for his age",
-    avatarColor: "#48CAE4",
-    initials: "AL",
-  },
-];
-
-const mockEmotions1: EmotionScore[] = [
-  { name: "Happiness", percentage: 92, color: "#90BE6D" },
-  { name: "Anxiety", percentage: 18, color: "#F8961E" },
-  { name: "Sadness", percentage: 11, color: "#577590" },
-  { name: "Anger", percentage: 5, color: "#F3722C" },
-];
-
-const mockEmotions2: EmotionScore[] = [
-  { name: "Happiness", percentage: 75, color: "#90BE6D" },
-  { name: "Sadness", percentage: 87, color: "#577590" },
-  { name: "Anxiety", percentage: 34, color: "#F8961E" },
-  { name: "Anger", percentage: 12, color: "#F3722C" },
-];
-
-const mockEmotions3: EmotionScore[] = [
-  { name: "Happiness", percentage: 68, color: "#90BE6D" },
-  { name: "Anger", percentage: 76, color: "#F3722C" },
-  { name: "Sadness", percentage: 22, color: "#577590" },
-  { name: "Anxiety", percentage: 41, color: "#F8961E" },
-];
-
-const MOCK_DRAWINGS: Drawing[] = [
-  {
-    id: "drawing-1",
-    childId: "child-rud",
-    date: "2026-05-08",
-    pathsJson: "[]",
-    mainEmotion: "Happy",
-    confidence: 92,
-    emotions: mockEmotions1,
-    summary:
-      "This drawing suggests emotional comfort, creativity, and positive social feelings. The child appears to be in a secure and nurturing environment.",
-    emotionalState: "Positive and stable emotional baseline with high energy",
-    socialIndicators: "Strong peer connections, feels included and valued",
-    stressSignals: "Minimal stress indicators present",
-    creativityLevel: 88,
-    confidenceLevel: 79,
-    recommendations: [
-      "Encourage outdoor play and exploration",
-      "Maintain positive reinforcement strategies",
-      "Continue creative activities to boost expression",
-    ],
-  },
-  {
-    id: "drawing-2",
-    childId: "child-emmi",
-    date: "2026-05-07",
-    pathsJson: "[]",
-    mainEmotion: "Sad",
-    confidence: 87,
-    emotions: mockEmotions2,
-    summary:
-      "This drawing indicates some underlying sadness. The child may be processing a recent emotional experience. Overall creative expression remains healthy.",
-    emotionalState: "Experiencing mild melancholy, needs extra attention",
-    socialIndicators: "Some social withdrawal, may need encouragement",
-    stressSignals: "Moderate stress indicators — monitor closely",
-    creativityLevel: 72,
-    confidenceLevel: 55,
-    recommendations: [
-      "Create open conversations about feelings",
-      "Schedule more play dates and social activities",
-      "Offer comfort activities like drawing or reading together",
-    ],
-  },
-  {
-    id: "drawing-3",
-    childId: "child-alex",
-    date: "2026-05-06",
-    pathsJson: "[]",
-    mainEmotion: "Angry",
-    confidence: 76,
-    emotions: mockEmotions3,
-    summary:
-      "The drawing reveals feelings of frustration and anger. This is healthy emotional expression. The child is processing big feelings through art.",
-    emotionalState: "Processing frustration in a healthy way through art",
-    socialIndicators: "Needs help expressing feelings verbally",
-    stressSignals: "Elevated stress — check for triggers at school or home",
-    creativityLevel: 80,
-    confidenceLevel: 64,
-    recommendations: [
-      "Teach emotional regulation techniques",
-      "Identify and address sources of frustration",
-      "Practice calming exercises together daily",
-    ],
-  },
-  {
-    id: "drawing-4",
-    childId: "child-rud",
-    date: "2026-05-01",
-    pathsJson: "[]",
-    mainEmotion: "Happy",
-    confidence: 85,
-    emotions: mockEmotions1,
-    summary:
-      "A vibrant drawing full of life and color. This child is thriving and shows excellent emotional development.",
-    emotionalState: "Excellent emotional stability and positivity",
-    socialIndicators: "Very socially engaged and connected",
-    stressSignals: "No concerning stress signals",
-    creativityLevel: 95,
-    confidenceLevel: 88,
-    recommendations: [
-      "Maintain current positive environment",
-      "Introduce new creative challenges",
-      "Celebrate achievements to build confidence",
-    ],
-  },
-];
-
+const AVATAR_COLORS = ["#6C4DFF", "#FF6B9D", "#48CAE4", "#F8961E", "#90BE6D", "#F3722C", "#577590"];
 const STORAGE_KEY_AUTH = "@drawmind_auth";
 const STORAGE_KEY_CHILDREN = "@drawmind_children";
 const STORAGE_KEY_DRAWINGS = "@drawmind_drawings";
 
+// تصدير مسمى صريح للـ AppProvider
 export function AppProvider({ children: reactChildren }: { children: React.ReactNode }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState("Anna");
   const [userEmail, setUserEmail] = useState("");
   const [userPhone, setUserPhone] = useState("");
   const [userRelationship, setUserRelationship] = useState("");
-  const [children, setChildren] = useState<Child[]>(MOCK_CHILDREN);
-  const [drawings, setDrawings] = useState<Drawing[]>(MOCK_DRAWINGS);
+  const [children, setChildren] = useState<Child[]>([]);
+  const [drawings, setDrawings] = useState<Drawing[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -267,17 +108,12 @@ export function AppProvider({ children: reactChildren }: { children: React.React
   }, []);
 
   const _persistAuth = async (name: string, email: string) => {
-    const data = {
-      isLoggedIn: true,
-      userName: name,
-      userEmail: email,
-      userPhone,
-      userRelationship,
-    };
+    const data = { isLoggedIn: true, userName: name, userEmail: email, userPhone, userRelationship };
     await AsyncStorage.setItem(STORAGE_KEY_AUTH, JSON.stringify(data));
     setIsLoggedIn(true);
     setUserName(name);
     setUserEmail(email);
+    await fetchChildren(email);
   };
 
   const login = useCallback(async (email: string, name: string) => {
@@ -286,29 +122,19 @@ export function AppProvider({ children: reactChildren }: { children: React.React
 
   const signIn = useCallback(async (email: string, password: string): Promise<AuthResult> => {
     const result = await signInUser(email, password);
-    if (result.success && result.user) {
-      await _persistAuth(result.user.name, result.user.email);
-    }
+    if (result.success && result.user) await _persistAuth(result.user.name, result.user.email);
     return result;
   }, []);
 
   const register = useCallback(async (email: string, password: string, name: string): Promise<AuthResult> => {
     const result = await registerUser(email, password, name);
-    if (result.success && result.user) {
-      await _persistAuth(result.user.name, result.user.email);
-    }
+    if (result.success && result.user) await _persistAuth(result.user.name, result.user.email);
     return result;
   }, []);
 
-  const loginWithSocial = useCallback(async (
-    email: string,
-    name: string,
-    provider: "google" | "apple"
-  ): Promise<AuthResult> => {
+  const loginWithSocial = useCallback(async (email: string, name: string, provider: "google" | "apple"): Promise<AuthResult> => {
     const result = await socialLogin(email, name, provider);
-    if (result.success && result.user) {
-      await _persistAuth(result.user.name, result.user.email);
-    }
+    if (result.success && result.user) await _persistAuth(result.user.name, result.user.email);
     return result;
   }, []);
 
@@ -318,119 +144,119 @@ export function AppProvider({ children: reactChildren }: { children: React.React
       AsyncStorage.removeItem(STORAGE_KEY_CHILDREN),
       AsyncStorage.removeItem(STORAGE_KEY_DRAWINGS),
     ]);
-    setIsLoggedIn(false);
-    setUserName("Anna");
-    setUserEmail("");
-    setUserPhone("");
-    setUserRelationship("");
-    setChildren(MOCK_CHILDREN);
-    setDrawings(MOCK_DRAWINGS);
+    setIsLoggedIn(false); setUserName("Anna"); setUserEmail(""); setUserPhone(""); setUserRelationship("");
+    setChildren([]); setDrawings([]); 
+  }, []); 
+
+  const updateUserProfile = useCallback(async (name: string, email: string, phone: string, relationship: string) => {
+    const data = { isLoggedIn: true, userName: name, userEmail: email, userPhone: phone, userRelationship: relationship };
+    await AsyncStorage.setItem(STORAGE_KEY_AUTH, JSON.stringify(data));
+    setUserName(name); setUserEmail(email); setUserPhone(phone); setUserRelationship(relationship);
   }, []);
 
-  const updateUserProfile = useCallback(
-    async (name: string, email: string, phone: string, relationship: string) => {
-      const data = {
-        isLoggedIn: true,
-        userName: name,
-        userEmail: email,
-        userPhone: phone,
-        userRelationship: relationship,
-      };
-      await AsyncStorage.setItem(STORAGE_KEY_AUTH, JSON.stringify(data));
-      setUserName(name);
-      setUserEmail(email);
-      setUserPhone(phone);
-      setUserRelationship(relationship);
-    },
-    []
-  );
+  const fetchChildren = useCallback(async (email: string) => {
+    try {
+      const response = await fetch(`http://localhost:5000/children?user_email=${encodeURIComponent(email)}`);
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setChildren(data.children);
+        await AsyncStorage.setItem(STORAGE_KEY_CHILDREN, JSON.stringify(data.children));
+      }
+    } catch (error) { console.error("Error fetching children:", error); }
+  }, []);
 
-  const addChild = useCallback(
-    async (child: Omit<Child, "id">) => {
-      const newChild: Child = {
-        ...child,
-        id: `child-${Date.now()}${Math.random().toString(36).substr(2, 5)}`,
-        avatarColor:
-          child.avatarColor || AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)],
-        initials: child.name.slice(0, 2).toUpperCase(),
-      };
-      const updated = [...children, newChild];
-      setChildren(updated);
-      await AsyncStorage.setItem(STORAGE_KEY_CHILDREN, JSON.stringify(updated));
-    },
-    [children]
-  );
+  const addChild = useCallback(async (child: Omit<Child, "id">) => {
+    const avatarColor = child.avatarColor || AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)];
+    const initials = child.name.slice(0, 2).toUpperCase();
+    try {
+      const response = await fetch("http://localhost:5000/children", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_email: userEmail, child_name: child.name, age: child.age, gender: child.gender }),
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        const newChildForUI: Child = { ...child, id: data.child.id, name: data.child.name, avatarColor: avatarColor, initials: initials };
+        const updated = [...children, newChildForUI];
+        setChildren(updated);
+        await AsyncStorage.setItem(STORAGE_KEY_CHILDREN, JSON.stringify(updated));
+      }
+    } catch (error) { console.error("Network Error adding child:", error); }
+  }, [children, userEmail]);
 
-  const updateChild = useCallback(
-    async (childId: string, updates: Omit<Child, "id">) => {
-      const updated = children.map((c) =>
-        c.id === childId ? { ...c, ...updates } : c
-      );
-      setChildren(updated);
-      await AsyncStorage.setItem(STORAGE_KEY_CHILDREN, JSON.stringify(updated));
-    },
-    [children]
-  );
+  const fetchDrawings = useCallback(async (childId: string) => {
+    try {
+      const response = await fetch(`http://localhost:5000/drawings?child_id=${childId}`);
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setDrawings((prev) => {
+          const newData = data.drawings || [];
+          return [...newData, ...prev.filter((d: Drawing) => d.childId !== childId)];
+        });
+        await AsyncStorage.setItem(STORAGE_KEY_DRAWINGS, JSON.stringify(data.drawings));
+      }
+    } catch (error) { console.error("Error fetching drawings:", error); }
+  }, []);
 
-  const addDrawing = useCallback(
-    async (drawing: Omit<Drawing, "id" | "date">): Promise<string> => {
-      const newDrawing: Drawing = {
-        ...drawing,
-        id: `drawing-${Date.now()}${Math.random().toString(36).substr(2, 5)}`,
-        date: new Date().toISOString().split("T")[0],
-      };
+  const updateChild = useCallback(async (childId: string, updates: Omit<Child, "id">) => {
+    const updated = children.map((c: Child) => c.id === childId ? { ...c, ...updates } : c);
+    setChildren(updated);
+    await AsyncStorage.setItem(STORAGE_KEY_CHILDREN, JSON.stringify(updated));
+  }, [children]);
+  const deleteDrawing = async (drawingId: string, childId: string) => {
+  try {
+    const response = await fetch(`http://127.0.0.1:5000/drawings/${drawingId}`, {
+      method: "DELETE",
+    });
+    if (response.ok) {
+      // إعادة جلب الرسومات المحدثة للطفل لتختفي الرسمة المحذوفة من الشاشة فوراً
+      if (fetchDrawings) fetchDrawings(childId);
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error("Error deleting drawing:", error);
+    return false;
+  }
+};
+  const addDrawing = useCallback(async (drawing: Omit<Drawing, "id" | "date">): Promise<string> => {
+    try {
+      const cleanChildId = parseInt(drawing.childId.replace("child-", "")) || 1;
+      const response = await fetch("http://localhost:5000/drawings", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ child_id: cleanChildId, image_path: "uploads/child_drawing_" + Date.now() + ".png", parent_explanation: drawing.summary || "No explanation", status: "analyzed" }),
+      });
+      const data = await response.json();
+      const newDrawing: Drawing = { ...drawing, id: data.success ? String(data.drawing_id) : `drawing-${Date.now()}`, date: new Date().toISOString().split("T")[0] };
       const updated = [newDrawing, ...drawings];
       setDrawings(updated);
       await AsyncStorage.setItem(STORAGE_KEY_DRAWINGS, JSON.stringify(updated));
       return newDrawing.id;
-    },
-    [drawings]
-  );
+    } catch (error) {
+      const fallbackId = `drawing-${Date.now()}`;
+      const newDrawing: Drawing = { ...drawing, id: fallbackId, date: new Date().toISOString().split("T")[0] };
+      setDrawings([newDrawing, ...drawings]);
+      return fallbackId;
+    }
+  }, [drawings]);
 
-  const getChildDrawings = useCallback(
-    (childId: string) => drawings.filter((d) => d.childId === childId),
-    [drawings]
-  );
+  const getChildDrawings = useCallback((childId: string) => {
+    return drawings.filter((d: Drawing) => String(d.childId) === String(childId));
+  }, [drawings]);
 
-  const getChildEmotionSummary = useCallback(
-    (childId: string) => {
-      const childDrawings = drawings.filter((d) => d.childId === childId);
-      if (childDrawings.length === 0) return "No data yet";
-      const happy = childDrawings.filter((d) =>
-        d.mainEmotion.toLowerCase().includes("happy")
-      );
-      const pct = Math.round((happy.length / childDrawings.length) * 100);
-      return `${pct}% Happy`;
-    },
-    [drawings]
-  );
+  const getChildEmotionSummary = useCallback((childId: string) => {
+    const childDrawings = drawings.filter((d: Drawing) => d.childId === childId);
+    if (childDrawings.length === 0) return "No data yet";
+    const happy = childDrawings.filter((d: Drawing) => d.mainEmotion.toLowerCase().includes("happy"));
+    const pct = Math.round((happy.length / childDrawings.length) * 100);
+    return `${pct}% Happy`;
+  }, [drawings]);
 
   return (
-    <AppContext.Provider
-      value={{
-        isLoggedIn,
-        userName,
-        userEmail,
-        userPhone,
-        userRelationship,
-        children,
-        drawings,
-        login,
-        signIn,
-        register,
-        loginWithSocial,
-        logout,
-        updateUserProfile,
-        addChild,
-        updateChild,
-        addDrawing,
-        getChildDrawings,
-        getChildEmotionSummary,
-      }}
-    >
+    <AppContext.Provider value={{ isLoggedIn, userName, userEmail, userPhone, userRelationship, children, drawings, fetchDrawings, login, signIn, register, loginWithSocial, logout, updateUserProfile, addChild, updateChild, addDrawing, getChildDrawings, getChildEmotionSummary , deleteDrawing}}>
       {reactChildren}
     </AppContext.Provider>
   );
+  
 }
 
 export function useApp() {

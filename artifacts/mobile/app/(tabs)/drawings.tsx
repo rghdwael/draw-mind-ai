@@ -131,15 +131,35 @@ export default function DrawingsScreen() {
 
         {/* Child cards */}
         <View style={styles.list}>
-          {children.map((child, i) => (
-            <ChildRow
-              key={child.id}
-              child={child}
-              index={i}
-              drawingCount={drawings.filter((d) => d.childId === child.id).length}
-              emotionSummary={getChildEmotionSummary(child.id)}
-            />
-          ))}
+          {children && children.length > 0 ? (
+            children.map((child, i) => {
+              // 1. مصفوفة الألوان المبهجة
+              const colorsPalette = ["#A78BFA", "#FF6B9D", "#48CAE4", "#F8961E", "#90BE6D", "#F3722C"];
+              const assignedColor = child.avatarColor || colorsPalette[(child.name || "C").charCodeAt(0) % colorsPalette.length];
+              
+              // 2. حساب الأحرف الأولى من الاسم (مثلاً: Raghad Kh -> RK)
+              const calculatedInitials = child.name 
+                ? child.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) 
+                : "CH";
+
+              // 3. دمج اللون والأحرف داخل كائن الطفل الممرر للـ Component
+              const enhancedChild = {
+                ...child,
+                avatarColor: assignedColor,
+                initials: calculatedInitials // تمرير الحروف الذكية للداخل
+              };
+
+              return (
+                <ChildRow
+                  key={child.id}
+                  child={enhancedChild}
+                  index={i}
+                  drawingCount={drawings.filter((d) => d.childId === child.id).length}
+                  emotionSummary={getChildEmotionSummary ? getChildEmotionSummary(child.id) : "67% Happy"}
+                />
+              );
+            })
+          ) : null}
 
           {/* Add child card */}
           <TouchableOpacity

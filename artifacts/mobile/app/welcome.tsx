@@ -23,30 +23,14 @@ export default function WelcomeScreen() {
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 900,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 900,
-        useNativeDriver: true,
-      }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 900, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 900, useNativeDriver: true }),
     ]).start();
 
     const floatLoop = Animated.loop(
       Animated.sequence([
-        Animated.timing(floatAnim, {
-          toValue: -14,
-          duration: 2200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(floatAnim, {
-          toValue: 0,
-          duration: 2200,
-          useNativeDriver: true,
-        }),
+        Animated.timing(floatAnim, { toValue: -15, duration: 2500, useNativeDriver: true }),
+        Animated.timing(floatAnim, { toValue: 0, duration: 2500, useNativeDriver: true }),
       ])
     );
     floatLoop.start();
@@ -58,30 +42,17 @@ export default function WelcomeScreen() {
 
   return (
     <LinearGradient
-      colors={["#DDD0FF", "#E8C8F8", "#F5D0E8"]}
-      start={{ x: 0.1, y: 0 }}
-      end={{ x: 0.9, y: 1 }}
+      // الألوان الجديدة التي تعطي إحساس السحر (Pastel Dreamy Gradient)
+      colors={["#B298FF", "#FFADE1"]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
       style={[styles.container, { paddingTop: topPad, paddingBottom: botPad }]}
     >
       <View style={styles.orb1} />
       <View style={styles.orb2} />
-      <View style={styles.orb3} />
 
-      <Animated.View
-        style={[
-          styles.content,
-          {
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }],
-          },
-        ]}
-      >
-        <Animated.View
-          style={[
-            styles.mascotWrap,
-            { transform: [{ translateY: floatAnim }] },
-          ]}
-        >
+      <Animated.View style={[styles.content, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+        <Animated.View style={[styles.mascotWrap, { transform: [{ translateY: floatAnim }] }]}>
           <Image
             source={require("../assets/images/whale-paintbrush.png")}
             style={styles.mascot}
@@ -91,7 +62,8 @@ export default function WelcomeScreen() {
 
         <Text style={styles.appName}>Draw Mind AI</Text>
         <Text style={styles.tagline}>
-          Understand your child's world{"\n"}with the power of AI
+          Understand your child's world{"\n"}
+          <Text style={{ fontWeight: "600" }}>with the power of AI</Text>
         </Text>
 
         <View style={styles.btnWrap}>
@@ -115,30 +87,21 @@ const styles = StyleSheet.create({
   },
   orb1: {
     position: "absolute",
-    width: 280,
-    height: 280,
-    borderRadius: 140,
-    backgroundColor: "rgba(255,255,255,0.25)",
-    top: -60,
-    left: -80,
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    backgroundColor: "rgba(255,255,255,0.3)",
+    top: -50,
+    left: -50,
   },
   orb2: {
     position: "absolute",
-    width: 200,
-    height: 200,
-    borderRadius: 100,
+    width: 250,
+    height: 250,
+    borderRadius: 125,
     backgroundColor: "rgba(255,255,255,0.2)",
-    bottom: 80,
+    bottom: 50,
     right: -50,
-  },
-  orb3: {
-    position: "absolute",
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: "rgba(255,200,235,0.3)",
-    top: "40%",
-    left: 20,
   },
   content: {
     alignItems: "center",
@@ -146,26 +109,29 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   mascotWrap: {
-    marginBottom: 32,
+    marginBottom: 40,
   },
   mascot: {
-    width: 200,
-    height: 200,
+    width: 220,
+    height: 220,
   },
   appName: {
-    fontSize: 36,
+    fontSize: 42,
     fontWeight: "800",
-    color: "#4A3070",
+    color: "#FFFFFF", // لون أبيض ليكون أوضح
     fontFamily: "Inter_700Bold",
     letterSpacing: -0.5,
-    marginBottom: 12,
+    marginBottom: 16,
     textAlign: "center",
+    textShadowColor: 'rgba(0, 0, 0, 0.15)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   tagline: {
-    fontSize: 16,
-    color: "rgba(90,60,120,0.7)",
+    fontSize: 18,
+    color: "#FDFDFD", // لون فاتح
     textAlign: "center",
-    lineHeight: 24,
+    lineHeight: 28,
     fontFamily: "Inter_400Regular",
     marginBottom: 56,
   },
@@ -174,5 +140,6 @@ const styles = StyleSheet.create({
   },
   btn: {
     width: "100%",
+    // يمكنك هنا إضافة shadow للزر ليعطي إحساس الـ Glassmorphism
   },
 });
