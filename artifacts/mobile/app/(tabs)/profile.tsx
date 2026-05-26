@@ -29,20 +29,21 @@ const SETTINGS = [
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
-  const { userName, userEmail, children, drawings, logout } = useApp() || { userName: "Parent", userEmail: "", children: [], drawings: [], logout: async () => {} };
+  
+  const { userName, userEmail, children, drawings, userRelationship, logout } = useApp() || { 
+    userName: "Parent", 
+    userEmail: "", 
+    children: [], 
+    drawings: [], 
+    userRelationship: "Parent",
+    logout: async () => {} 
+  };
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
   const [showSignOutModal, setShowSignOutModal] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
-  // تأمين الفلترة ضد الحقول الفارغة لعدم انهيار الصفحة ودعم الكلمات (Happy / Happiness) الراجعة من Neon
   const safeDrawings = drawings || [];
-  const happyCount = safeDrawings.filter((d) => {
-    const emotion = d?.mainEmotion ? String(d.mainEmotion).toLowerCase() : "";
-    return emotion.includes("happ");
-  }).length;
-  
-  const happyPct = safeDrawings.length > 0 ? Math.round((happyCount / safeDrawings.length) * 100) : 0;
 
   function handleSettingPress(route: string) {
     if (Platform.OS !== "web") {
@@ -94,19 +95,26 @@ export default function ProfileScreen() {
         </LinearGradient>
 
         <View style={styles.body}>
-          {/* Stats */}
+          {/* ── Stats Row (Cleaned & Fixed Section) ── */}
           <View style={styles.statsRow}>
+            {/* كرت الأطفال */}
             <GlassCard style={styles.statCard} padding={16}>
               <Text style={styles.statNum}>{children ? children.length : 0}</Text>
               <Text style={styles.statLabel}>Children</Text>
             </GlassCard>
+
+            {/* كرت الرسومات المباشر من مصفوفة الحفظ الفعلي */}
             <GlassCard style={styles.statCard} padding={16}>
               <Text style={styles.statNum}>{safeDrawings.length}</Text>
               <Text style={styles.statLabel}>Drawings</Text>
             </GlassCard>
+
+            {/* كرت الدور المخصص المستقر */}
             <GlassCard style={styles.statCard} padding={16}>
-              <Text style={styles.statNum}>{happyPct}%</Text>
-              <Text style={styles.statLabel}>Happy</Text>
+              <Text style={[styles.statNum, { fontSize: 16, marginTop: 4, marginBottom: 2 }]} numberOfLines={1}>
+                {userRelationship || "Parent"}
+              </Text>
+              <Text style={styles.statLabel}>Role</Text>
             </GlassCard>
           </View>
 

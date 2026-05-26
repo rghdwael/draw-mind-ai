@@ -111,6 +111,7 @@ function ChildRow({
 }
 
 // ── Screen ────────────────────────────────────────────────────────────────────
+
 export default function DrawingsScreen() {
   const insets = useSafeAreaInsets();
   const { children, drawings, getChildEmotionSummary } = useApp();
@@ -125,28 +126,30 @@ export default function DrawingsScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <Text style={styles.pageTitle}>Children</Text>
-        <Text style={styles.pageSubtitle}>Select a child to view their profile and drawings</Text>
+        {/* ── قسم الهيدر المحدث بجمع الأيقونة والاسم أفقيًا ── */}
+        <View style={styles.headerContainer}>
+          <View style={styles.titleRow}>
+            <Ionicons name="people" size={24} color="#A78BFA" style={styles.headerIcon} />
+            <Text style={styles.pageTitle}>Children</Text>
+          </View>
+          <Text style={styles.pageSubtitle}>Select a child to view their profile and drawings</Text>
+        </View>
 
         {/* Child cards */}
         <View style={styles.list}>
           {children && children.length > 0 ? (
             children.map((child, i) => {
-              // 1. مصفوفة الألوان المبهجة
               const colorsPalette = ["#A78BFA", "#FF6B9D", "#48CAE4", "#F8961E", "#90BE6D", "#F3722C"];
               const assignedColor = child.avatarColor || colorsPalette[(child.name || "C").charCodeAt(0) % colorsPalette.length];
               
-              // 2. حساب الأحرف الأولى من الاسم (مثلاً: Raghad Kh -> RK)
               const calculatedInitials = child.name 
                 ? child.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) 
                 : "CH";
 
-              // 3. دمج اللون والأحرف داخل كائن الطفل الممرر للـ Component
               const enhancedChild = {
                 ...child,
                 avatarColor: assignedColor,
-                initials: calculatedInitials // تمرير الحروف الذكية للداخل
+                initials: calculatedInitials 
               };
 
               return (
@@ -154,7 +157,7 @@ export default function DrawingsScreen() {
                   key={child.id}
                   child={enhancedChild}
                   index={i}
-                  drawingCount={drawings.filter((d) => d.childId === child.id).length}
+                  drawingCount={drawings.filter((d) => String(d.childId) === String(child.id)).length}
                   emotionSummary={getChildEmotionSummary ? getChildEmotionSummary(child.id) : "67% Happy"}
                 />
               );
@@ -210,19 +213,30 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#EDE5FF" },
   scroll: { paddingHorizontal: 20 },
 
+  /* ستايلات حزمة الهيدر والمحاذاة المضافة حديثاً */
+  headerContainer: {
+    marginBottom: 24,
+  },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 6,
+  },
+  headerIcon: {
+    marginTop: 2, 
+  },
   pageTitle: {
     fontSize: 30,
     fontWeight: "800",
     color: "#4A3070",
     fontFamily: "Inter_700Bold",
     letterSpacing: -0.8,
-    marginBottom: 6,
   },
   pageSubtitle: {
     fontSize: 14,
     color: "#A090B8",
     fontFamily: "Inter_400Regular",
-    marginBottom: 24,
     lineHeight: 20,
   },
 

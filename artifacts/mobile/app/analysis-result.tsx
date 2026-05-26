@@ -29,10 +29,11 @@ export default function DrawingAnalysisScreen() {
   const botPad = Platform.OS === "web" ? 24 : insets.bottom;
 
   // المطابقة المرنة للرسمة
-  const drawing = drawings.find(
-    (d) => d && d.id && drawingId && d.id.toString() === drawingId.toString()
-  );
-
+  // بدلاً من d.id، استخدمي هذا البحث المرن:
+ const drawing = drawings.find((d: any) => {
+  const currentId = d.id || d.drawing_id; 
+  return currentId && drawingId && currentId.toString() === drawingId.toString();
+ });
   // 💡 تحديد childId الذكي: إذا لم يأتي من الرابط، نأخذه فوراً من بيانات الرسمة داخل الـ Context
   const targetChildId = paramChildId || (drawing as any)?.childId || (drawing as any)?.child_id;
 

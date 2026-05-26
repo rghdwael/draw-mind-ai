@@ -169,37 +169,6 @@ export default function AddChildScreen() {
             </View>
           </View>
 
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Emotional Notes</Text>
-            <View style={[styles.inputWrap, styles.textareaWrap]}>
-              <TextInput
-                style={[styles.input, styles.textarea]}
-                placeholder="Any emotional observations..."
-                placeholderTextColor="#A090B8"
-                value={emotionalNotes}
-                onChangeText={setEmotionalNotes}
-                multiline
-                numberOfLines={3}
-                textAlignVertical="top"
-              />
-            </View>
-          </View>
-
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Parent Notes</Text>
-            <View style={[styles.inputWrap, styles.textareaWrap]}>
-              <TextInput
-                style={[styles.input, styles.textarea]}
-                placeholder="Your personal notes about your child..."
-                placeholderTextColor="#A090B8"
-                value={parentNotes}
-                onChangeText={setParentNotes}
-                multiline
-                numberOfLines={3}
-                textAlignVertical="top"
-              />
-            </View>
-          </View>
 
           <View style={styles.btnRow}>
             <TouchableOpacity onPress={() => router.back()} style={styles.cancelBtn}>

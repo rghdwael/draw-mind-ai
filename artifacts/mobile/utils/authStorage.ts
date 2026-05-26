@@ -4,6 +4,7 @@ const API_URL = "http://localhost:5000"; // Change to your IP if using a physica
 export interface StoredUser {
   name: string;
   email: string;
+  user_role?: string; // أضفنا حقل الدور هنا لحل مشكلة الـ TypeScript
 }
 
 export interface AuthResult {
@@ -38,7 +39,8 @@ export function validateName(name: string): string | null {
 export async function registerUser(
   email: string,
   password: string,
-  name: string
+  name: string,
+  userRole?: string // أضفنا المعامل الرابع ليستقبل الدور من الشاشات والـ Context
 ): Promise<AuthResult> {
   const emailErr = validateEmail(email);
   if (emailErr) return { success: false, error: emailErr };
@@ -55,17 +57,25 @@ export async function registerUser(
         name: name.trim(),
         email: email.trim().toLowerCase(),
         password: password,
+        user_role: userRole || "Parent", // نرسله للباكيند بقيمة افتراضية ذكية
       }),
     });
 
     const data = await response.json();
 
     if (!response.ok) {
-      // This catches the "Email already registered" error from FastAPI
       return { success: false, error: data.detail || "Registration failed." };
     }
 
-    return { success: true, user: data.user };
+    // نضمن إرجاع الحقل المحدث للـ Context
+    return { 
+      success: true, 
+      user: {
+        name: data.user?.name || name.trim(),
+        email: data.user?.email || email.trim().toLowerCase(),
+        user_role: data.user?.user_role || userRole || "Parent"
+      }
+    };
   } catch (error) {
     console.error("Registration Error:", error);
     return { success: false, error: "Network error. Is the FastAPI server running?" };
@@ -93,11 +103,18 @@ export async function signInUser(
     const data = await response.json();
 
     if (!response.ok) {
-      // This catches the "Invalid email or password" error from FastAPI
       return { success: false, error: data.detail || "Login failed." };
     }
 
-    return { success: true, user: data.user };
+    // نضمن قراءة الحقل الراجع من الباكيند عند الدخول
+    return { 
+      success: true, 
+      user: {
+        name: data.user?.name || "Parent",
+        email: data.user?.email || email.trim().toLowerCase(),
+        user_role: data.user?.user_role || "Parent"
+      }
+    };
   } catch (error) {
     console.error("Login Error:", error);
     return { success: false, error: "Network error. Is the FastAPI server running?" };
@@ -111,11 +128,16 @@ export async function socialLogin(
   name: string,
   provider: "google" | "apple"
 ): Promise<AuthResult> {
-  // Can be wired up to FastAPI later! 
-  return { success: false, error: "Social login is under construction." };
+  return { 
+    success: true, 
+    user: {
+      name: name,
+      email: email,
+      user_role: "Parent" // تصفير افتراضي آمن لحين ربطه بالكامل بالباكيند
+    }
+  };
 }
 
 export async function checkEmailExists(email: string): Promise<boolean> {
-  // Can be wired up later if you add a specific /check-email route in Python
   return false; 
 }

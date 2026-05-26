@@ -56,6 +56,7 @@ export default function TabLayout() {
         tabBarBackground: () => (
           <View style={[StyleSheet.absoluteFill, { backgroundColor: "#EDE5FF" }]} />
         ),
+        tabBarBackgroundBlendMode: "normal",
         tabBarLabelStyle: {
           fontSize: 11,
           fontFamily: "Inter_600SemiBold",
@@ -76,15 +77,19 @@ export default function TabLayout() {
           ),
         }}
       />
+      
+      {/* ── التعديل هنا: تم تحويل الاسم إلى Children وتغيير الأيقونة والرمز بالكامل ── */}
       <Tabs.Screen
         name="drawings"
         options={{
-          title: "Drawings",
+          title: "Children",
+          tabBarLabel: "Children",
           tabBarIcon: ({ color, size }) => (
-            <TabIcon ionName="images" sfName="photo.stack.fill" color={color} size={size} />
+            <TabIcon ionName="people" sfName="person.2.fill" color={color} size={size} />
           ),
         }}
       />
+      
       <Tabs.Screen
         name="chat"
         options={{

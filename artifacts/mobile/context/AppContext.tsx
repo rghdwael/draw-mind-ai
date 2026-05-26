@@ -61,7 +61,6 @@ interface AppContextType {
   getChildEmotionSummary: (childId: string) => string;
 }
 
-// إنشاء الـ Context وتصديره بشكل مسمى
 export const AppContext = createContext<AppContextType | null>(null);
 
 const AVATAR_COLORS = ["#6C4DFF", "#FF6B9D", "#48CAE4", "#F8961E", "#90BE6D", "#F3722C", "#577590"];
@@ -69,7 +68,6 @@ const STORAGE_KEY_AUTH = "@drawmind_auth";
 const STORAGE_KEY_CHILDREN = "@drawmind_children";
 const STORAGE_KEY_DRAWINGS = "@drawmind_drawings";
 
-// تصدير مسمى صريح للـ AppProvider
 export function AppProvider({ children: reactChildren }: { children: React.ReactNode }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState("Anna");
@@ -116,9 +114,7 @@ export function AppProvider({ children: reactChildren }: { children: React.React
     await fetchChildren(email);
   };
 
-  const login = useCallback(async (email: string, name: string) => {
-    await _persistAuth(name, email);
-  }, []);
+  const login = useCallback(async (email: string, name: string) => { await _persistAuth(name, email); }, []);
 
   const signIn = useCallback(async (email: string, password: string): Promise<AuthResult> => {
     const result = await signInUser(email, password);
@@ -183,14 +179,19 @@ export function AppProvider({ children: reactChildren }: { children: React.React
     } catch (error) { console.error("Network Error adding child:", error); }
   }, [children, userEmail]);
 
+  // ── الدالة المصححة لجلب الرسومات ──
   const fetchDrawings = useCallback(async (childId: string) => {
     try {
       const response = await fetch(`http://localhost:5000/drawings?child_id=${childId}`);
       const data = await response.json();
       if (response.ok && data.success) {
+        const normalized = (data.drawings || []).map((d: any) => ({
+          ...d,
+          childId: String(d.childId || d.child_id || childId)
+        }));
         setDrawings((prev) => {
-          const newData = data.drawings || [];
-          return [...newData, ...prev.filter((d: Drawing) => d.childId !== childId)];
+          const others = prev.filter((d: any) => String(d.childId) !== String(childId));
+          return [...others, ...normalized];
         });
         await AsyncStorage.setItem(STORAGE_KEY_DRAWINGS, JSON.stringify(data.drawings));
       }
@@ -202,22 +203,18 @@ export function AppProvider({ children: reactChildren }: { children: React.React
     setChildren(updated);
     await AsyncStorage.setItem(STORAGE_KEY_CHILDREN, JSON.stringify(updated));
   }, [children]);
+
   const deleteDrawing = async (drawingId: string, childId: string) => {
-  try {
-    const response = await fetch(`http://127.0.0.1:5000/drawings/${drawingId}`, {
-      method: "DELETE",
-    });
-    if (response.ok) {
-      // إعادة جلب الرسومات المحدثة للطفل لتختفي الرسمة المحذوفة من الشاشة فوراً
-      if (fetchDrawings) fetchDrawings(childId);
-      return true;
-    }
-    return false;
-  } catch (error) {
-    console.error("Error deleting drawing:", error);
-    return false;
-  }
-};
+    try {
+      const response = await fetch(`http://127.0.0.1:5000/drawings/${drawingId}`, { method: "DELETE" });
+      if (response.ok) {
+        if (fetchDrawings) fetchDrawings(childId);
+        return true;
+      }
+      return false;
+    } catch (error) { return false; }
+  };
+
   const addDrawing = useCallback(async (drawing: Omit<Drawing, "id" | "date">): Promise<string> => {
     try {
       const cleanChildId = parseInt(drawing.childId.replace("child-", "")) || 1;
@@ -231,32 +228,27 @@ export function AppProvider({ children: reactChildren }: { children: React.React
       setDrawings(updated);
       await AsyncStorage.setItem(STORAGE_KEY_DRAWINGS, JSON.stringify(updated));
       return newDrawing.id;
-    } catch (error) {
-      const fallbackId = `drawing-${Date.now()}`;
-      const newDrawing: Drawing = { ...drawing, id: fallbackId, date: new Date().toISOString().split("T")[0] };
-      setDrawings([newDrawing, ...drawings]);
-      return fallbackId;
-    }
+    } catch (error) { return `drawing-${Date.now()}`; }
   }, [drawings]);
 
+  // ── الدالة المصححة للفلترة ──
   const getChildDrawings = useCallback((childId: string) => {
-    return drawings.filter((d: Drawing) => String(d.childId) === String(childId));
+    return drawings.filter((d: any) => String(d.childId) === String(childId));
   }, [drawings]);
 
   const getChildEmotionSummary = useCallback((childId: string) => {
-    const childDrawings = drawings.filter((d: Drawing) => d.childId === childId);
+    const childDrawings = getChildDrawings(childId);
     if (childDrawings.length === 0) return "No data yet";
-    const happy = childDrawings.filter((d: Drawing) => d.mainEmotion.toLowerCase().includes("happy"));
+    const happy = childDrawings.filter((d: any) => d.mainEmotion?.toLowerCase().includes("happy"));
     const pct = Math.round((happy.length / childDrawings.length) * 100);
     return `${pct}% Happy`;
-  }, [drawings]);
+  }, [getChildDrawings]);
 
   return (
     <AppContext.Provider value={{ isLoggedIn, userName, userEmail, userPhone, userRelationship, children, drawings, fetchDrawings, login, signIn, register, loginWithSocial, logout, updateUserProfile, addChild, updateChild, addDrawing, getChildDrawings, getChildEmotionSummary , deleteDrawing}}>
       {reactChildren}
     </AppContext.Provider>
   );
-  
 }
 
 export function useApp() {

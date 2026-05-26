@@ -53,8 +53,6 @@ function GoogleSignInButton({ disabled, onStart, onSuccess, onError, onCancel }:
   const configuredId = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID ?? "";
   const [loading, setLoading] = useState(false);
 
-  // Always pass a truthy webClientId to satisfy expo-auth-session's invariant.
-  // When unconfigured we use a placeholder — the flow will fail gracefully.
   const [, response, promptAsync] = Google.useAuthRequest({
     webClientId: configuredId || "not-configured",
   });
@@ -171,6 +169,12 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
+  
+  // حقل الدور المختار (القيمة الافتراضية Parent)
+  const [userRole, setUserRole] = useState("Parent");
+  // قائمة الأدوار المتاحة ومطابقة لقاعدة البيانات بالكامل
+  const roles = ["Parent", "Father", "Mother", "Teacher", "Sibling"];
+  const [showRoleDropdown, setShowRoleDropdown] = useState(false);
 
   const [emailErr, setEmailErr] = useState("");
   const [passwordErr, setPasswordErr] = useState("");
@@ -187,7 +191,6 @@ export default function LoginScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
 
-  // ── Field change handlers ─────────────────────────────────────────────────
   const onEmailChange    = (v: string) => { setEmail(v);    setEmailErr("");    setFormErr(""); };
   const onPasswordChange = (v: string) => { setPassword(v); setPasswordErr(""); setFormErr(""); };
   const onNameChange     = (v: string) => { setName(v);     setNameErr("");     setFormErr(""); };
@@ -195,10 +198,10 @@ export default function LoginScreen() {
   const switchMode = () => {
     setIsSignUp((p) => !p);
     setEmailErr(""); setPasswordErr(""); setNameErr(""); setFormErr("");
-    setEmail(""); setPassword(""); setName("");
+    setEmail(""); setPassword(""); setName(""); setUserRole("Parent");
+    setShowRoleDropdown(false);
   };
 
-  // ── Validate ──────────────────────────────────────────────────────────────
   function validateForm(): boolean {
     let ok = true;
     if (isSignUp) {
@@ -212,14 +215,14 @@ export default function LoginScreen() {
     return ok;
   }
 
-  // ── Submit ────────────────────────────────────────────────────────────────
   const handleSubmit = async () => {
     if (!validateForm()) { shake(); return; }
     setLoading(true);
     setFormErr("");
     try {
+      // تمرير حقل الـ userRole عند الـ register للباكيند
       const result = isSignUp
-        ? await register(email.trim(), password, name.trim())
+        ? await register(email.trim(), password, name.trim(), userRole)
         : await signIn(email.trim(), password);
       if (result.success) {
         router.replace("/(tabs)");
@@ -235,7 +238,6 @@ export default function LoginScreen() {
     }
   };
 
-  // ── Google callbacks ──────────────────────────────────────────────────────
   const handleGoogleSuccess = async (gEmail: string, gName: string) => {
     const result = await loginWithSocial(gEmail, gName, "google");
     if (result.success) {
@@ -245,7 +247,6 @@ export default function LoginScreen() {
     }
   };
 
-  // ── Apple Sign-In ─────────────────────────────────────────────────────────
   const handleApple = async () => {
     if (Platform.OS !== "ios") {
       setFormErr("Apple Sign-In is only available on iOS devices.");
@@ -286,7 +287,6 @@ export default function LoginScreen() {
     }
   };
 
-  // ── Forgot password ───────────────────────────────────────────────────────
   const handleForgotSubmit = async () => {
     const err = validateEmail(forgotEmail);
     if (err) { setForgotEmailErr(err); return; }
@@ -447,6 +447,61 @@ export default function LoginScreen() {
               <PasswordStrength password={password} />
             )}
 
+            {/* ── حقل اختيار الدور الجديد (يظهر فقط عند إنشاء الحساب) ── */}
+            {isSignUp && (
+              <View style={{ zIndex: 10 }}>
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  onPress={() => !anyLoading && setShowRoleDropdown(!showRoleDropdown)}
+                  style={styles.inputWrap}
+                >
+                  <Ionicons
+                    name="people-outline"
+                    size={18}
+                    color="#B0A0C8"
+                    style={styles.inputIcon}
+                  />
+                  <Text style={[styles.input, { color: userRole ? "#4A3070" : "#C0B0D8", paddingTop: Platform.OS === 'web' ? 0 : 16 }]}>
+                    {userRole ? `Role: ${userRole}` : "Select your role"}
+                  </Text>
+                  <Ionicons
+                    name={showRoleDropdown ? "chevron-up" : "chevron-down"}
+                    size={18}
+                    color="#B0A0C8"
+                  />
+                </TouchableOpacity>
+
+                {/* القائمة المنسدلة المخصصة */}
+                {showRoleDropdown && (
+                  <View style={styles.dropdownContainer}>
+                    {roles.map((role) => (
+                      <TouchableOpacity
+                        key={role}
+                        style={[
+                          styles.dropdownItem,
+                          userRole === role && styles.dropdownItemActive
+                        ]}
+                        onPress={() => {
+                          setUserRole(role);
+                          setShowRoleDropdown(false);
+                        }}
+                      >
+                        <Text style={[
+                          styles.dropdownItemText,
+                          userRole === role && styles.dropdownItemTextActive
+                        ]}>
+                          {role}
+                        </Text>
+                        {userRole === role && (
+                          <Ionicons name="checkmark" size={16} color="#A78BFA" />
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+              </View>
+            )}
+
             {/* Forgot password */}
             {!isSignUp && (
               <TouchableOpacity
@@ -498,7 +553,6 @@ export default function LoginScreen() {
 
             {/* Social buttons */}
             <View style={styles.socialRow}>
-              {/* Google — in its own component to isolate the hook */}
               <GoogleSignInButton
                 disabled={anyLoading}
                 onStart={() => setFormErr("")}
@@ -816,6 +870,41 @@ const styles = StyleSheet.create({
     color: "#A78BFA",
     fontFamily: "Inter_700Bold",
     fontWeight: "700",
+  },
+
+  // Dropdown UI Styles
+  dropdownContainer: {
+    backgroundColor: "rgba(255,255,255,0.95)",
+    borderRadius: 18,
+    marginTop: 6,
+    padding: 8,
+    borderWidth: 1.5,
+    borderColor: "#EDE5FF",
+    shadowColor: "#A78BFA",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  dropdownItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+  },
+  dropdownItemActive: {
+    backgroundColor: "#F3EEFF",
+  },
+  dropdownItemText: {
+    fontSize: 14,
+    color: "#4A3070",
+    fontFamily: "Inter_400Regular",
+  },
+  dropdownItemTextActive: {
+    fontFamily: "Inter_700Bold",
+    color: "#7B5CE5",
   },
 
   // Modal
