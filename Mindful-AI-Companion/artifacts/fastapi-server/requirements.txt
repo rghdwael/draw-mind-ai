@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+sqlalchemy
+opencv-python
+tensorflow
+groq
+python-dotenv
+passlib[bcrypt]

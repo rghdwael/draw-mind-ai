@@ -1,0 +1,50 @@
+{
+  "expo": {
+    "name": "Draw Mind AI",
+    "slug": "mobile",
+    "version": "1.0.0",
+    "jsEngine": "hermes",
+    "orientation": "portrait",
+    "icon": "./assets/images/whale-paintbrush-icon.png",
+    "scheme": "mobile",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/whale-paintbrush-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F5F1FF"
+    },
+    "ios": {
+      "supportsTablet": false
+    },
+    "android": {
+  "adaptiveIcon": {
+    "foregroundImage": "./assets/images/whale-paintbrush-icon.png",  
+    "backgroundColor": "#ffffff"
+  },
+  "package": "com.raghad.drawmind"
+},
+    "web": {
+      "favicon": "./assets/images/whale-paintbrush-icon.png"
+    },
+    "plugins": [
+      [
+        "expo-router",
+        {
+          "origin": "https://replit.com/"
+        }
+      ],
+      "expo-font",
+      "expo-web-browser"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "d5d9138c-8fc1-4b84-8898-f54975c89914"
+      }
+    }
+  }
+}

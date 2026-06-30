@@ -1,0 +1,85 @@
+import './polyfill.js';
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+  useFonts,
+} from "@expo-google-fonts/inter";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Stack } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
+import React, { useEffect } from "react";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { KeyboardProvider } from "react-native-keyboard-controller";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { View, StyleSheet, Platform } from "react-native";
+
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { AppProvider } from "@/context/AppContext";
+
+SplashScreen.preventAutoHideAsync();
+
+const queryClient = new QueryClient();
+
+function RootLayoutNav() {
+  return (
+    <Stack screenOptions={{ headerShown: false, animation: "slide_from_right" }}>
+      <Stack.Screen name="index" />
+      <Stack.Screen name="welcome" />
+      <Stack.Screen name="login" />
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="add-child" />
+      <Stack.Screen name="choose-child" />
+      <Stack.Screen name="drawing-canvas" />
+      <Stack.Screen name="analysis-result" />
+      <Stack.Screen name="child-analysis" />
+      <Stack.Screen name="edit-child" />
+      <Stack.Screen name="add-drawing" />
+      <Stack.Screen name="drawing-detail" />
+      <Stack.Screen name="edit-profile" />
+      <Stack.Screen name="support-feedback" />
+      <Stack.Screen name="language" />
+      <Stack.Screen name="change-password" />
+      <Stack.Screen name="about-app" />
+      <Stack.Screen name="privacy-policy" />
+      <Stack.Screen name="terms-of-use" />
+    </Stack>
+  );
+}
+export default function RootLayout() {
+  const [fontsLoaded, fontError] = useFonts({
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+  });
+
+  useEffect(() => {
+    if (fontsLoaded || fontError) {
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded, fontError]);
+
+  if (!fontsLoaded && !fontError) return null;
+
+  const renderContent = () => (
+    <SafeAreaProvider>
+      <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <GestureHandlerRootView style={{ flex: 1 }}>
+            <KeyboardProvider>
+              <AppProvider>
+                <RootLayoutNav />
+              </AppProvider>
+            </KeyboardProvider>
+          </GestureHandlerRootView>
+        </QueryClientProvider>
+      </ErrorBoundary>
+    </SafeAreaProvider>
+  );
+
+  // Return the core app directly, completely full-screen on any device or browser!
+  return renderContent();
+}
+;
